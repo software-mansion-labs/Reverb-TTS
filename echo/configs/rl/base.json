@@ -1,0 +1,38 @@
+{
+    "name": "base",
+    "notes": "r2_base: CTC pairs by the relative rule, critic pairs at margin 4 (knowledge/training/rl_dpo.md)",
+    "pairs": {
+        "ctc_pairs": 4,
+        "critic_pairs": 6,
+        "take_uses": 2,
+        "ctc_margin": 1.0,
+        "word_drop": 0.4,
+        "critic_margin": 4.0,
+        "acceptable_ctc": 1.0,
+        "ctc_filter": false,
+        "ctc_share": 0.0
+    },
+    "train": {
+        "lr": 8e-06,
+        "lr_min": 0.1,
+        "warmup": 20,
+        "pairs_per_step": 32,
+        "epochs": 1,
+        "beta": 5.0,
+        "kl": 1.0,
+        "winner_anchor": 2.0,
+        "masks": 8,
+        "short_masks": 16,
+        "short_frames": 100,
+        "probe_groups": "data/rl/probe",
+        "probe_every": 50,
+        "save_at": []
+    },
+    "tracking": {
+        "enabled": true,
+        "tracking_uri": "https://mlflow.swmansion.com",
+        "experiment_id": "3",
+        "username": null,
+        "password": null
+    }
+}

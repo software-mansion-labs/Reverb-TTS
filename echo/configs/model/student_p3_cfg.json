@@ -1,0 +1,17 @@
+{
+    "meta": {
+        "version": 1,
+        "name": "student-prefix-blocked-fitted"
+    },
+    "init_from": "runs/p2_pruning_embed/final",
+    "prefix_blocking": {
+        "enabled": true
+    },
+    "cfg": {
+        "mode": "default",
+        "guidance_scale": 2.0
+    },
+    "architecture": {
+        "intermediate_size": 2048
+    }
+}

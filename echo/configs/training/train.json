@@ -1,0 +1,118 @@
+{
+    "meta": {
+        "version": 1,
+        "name": "echo-v0.0.2-p3-cfg-distillation",
+        "seed": 4321,
+        "notes": "CFG distillation of the pruned model (runs/p2_pruning_embed/final): the student learns, in one conditional pass, the w=2 guided mixture of a frozen copy of itself. Reverse KL, 20 epochs, w ramped over the first half, LR warmed up with it from 2e-6 to 1e-5 by 45%, then a cosine decay."
+    },
+
+    "models": {
+        "student": "echo/configs/model/student_p3_cfg.json",
+        "teacher": "echo/configs/model/student_p3_cfg.json"
+    },
+
+    "data": {
+        "train_manifest": "data/train/train_processed.csv",
+        "dev_manifest": "data/dev/dev_processed.csv",
+        "test_manifest": "data/test/test_in_processed.csv",
+        "data_root": null,
+        "max_batch_size": 128,
+        "max_batch_tokens": 16384,
+        "max_pad_ratio": 0.3,
+        "packing": "sorted",
+        "packing_chunk": 2048,
+        "num_workers": 16,
+        "seed": 4321
+    },
+
+    "preprocessing": {
+        "tokenizer": "runs/p2_pruning_vocab/vocab",
+        "drop_prefix_ratio": 0.0,
+        "prefix_split": {
+            "prefix_min_dur": 1.5,
+            "prefix_min_ratio": 0.0,
+            "prefix_max_ratio": 0.5
+        }
+    },
+
+    "masking": {
+        "polish_share": 0.25,
+        "polish_weights": [8.0, 8.0, 4.0, 4.0, 2.0, 2.0],
+        "stage_shares": [0.01, 0.0621, 0.2226, 0.4502, 0.2551],
+        "tail_masked": 0.35
+    },
+
+    "loss": {
+        "main": {"ce": 0.0, "kl": 1.0, "ce_selection": 1.0},
+        "polish": {"ce": 0.0, "kl": 1.0, "ce_selection": 1.0},
+        "temperature": 1.0,
+        "reverse_kl": true
+    },
+
+    "optim": {
+        "learning_rate": 1e-05,
+        "weight_decay": 0.01,
+        "max_grad_norm": 1.0,
+        "gradient_accumulation_steps": 1,
+        "mixed_precision": "bf16",
+        "gradient_checkpointing": true
+    },
+
+    "schedule": {
+        "steps": null,
+        "epochs": 20,
+        "lr_scheduler_type": "cosine",
+        "warmup_ratio": 0.4,
+        "min_lr_ratio": 0.1,
+        "hold_ratio": 0.5,
+        "warmup_start_ratio": 0.2
+    },
+
+    "guidance": {
+        "scale": 2.0,
+        "anneal_shape": "power",
+        "anneal_ratio": 0.5,
+        "anneal_power": 0.5
+    },
+
+    "logging": {
+        "log_every_steps": 100
+    },
+
+    "evaluation": {
+        "eval_every_steps": 6000,
+        "eval_batches": 50,
+        "eval_on_dev": true,
+        "eval_on_test": true,
+        "prefix_ratio": 0.25
+    },
+
+    "checkpoint": {
+        "output_dir": "runs/p3_cfg",
+        "resume": null,
+        "save_every_steps": 0,
+        "save_at_epoch_end": true,
+        "keep_last_n_checkpoints": 5
+    },
+
+    "tracking": {
+        "enabled": true,
+        "tracking_uri": "https://mlflow.swmansion.com",
+        "experiment_id": "3",
+        "username": null,
+        "password": null
+    },
+
+    "pruning": {
+        "reference": "echo/configs/model/student_p2_vocab.json",
+        "calibration_batches": 4,
+        "ffn_size": 2048,
+        "kv_heads": 6,
+        "embedding_rank": 256,
+        "layers_to_prune": 4,
+        "protected_layers": [0, -1],
+        "fade_steps": 6063,
+        "fade_power": 2.0,
+        "fade_budget": null
+    }
+}
