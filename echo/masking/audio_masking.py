@@ -1,14 +1,16 @@
 import torch
 
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from echo.masking.constants import (
     DECISION_SHARES,
+    DEFAULT_MIN_PASS_SHARE,
     DEFAULT_POLISH_SHARE,
     DEFAULT_POLISH_WEIGHTS,
     DEFAULT_TAIL_MASKED,
     EARLY_PASSES,
     MAIN_CODEBOOKS,
+    MAIN_PATH_SAMPLERS,
     TRAJECTORY_C0,
     TRAJECTORY_C1,
     TRAJECTORY_JITTER,
@@ -20,17 +22,27 @@ from echo.masking.constants import (
 def build_main_stage_audio_mask(
     audio_tokens: torch.Tensor,                       # [C, T]
     prefix_frames: int,                               # Frames the prefix keeps, never masked
-    stage_shares: Optional[Sequence[float]] = None,   # Shares of the (early, middle, penultimate, final, tail) draws
-    tail_masked: float = DEFAULT_TAIL_MASKED,         # Least masked fraction of codebook 0 a tail draw reaches
-    decision_power: float = 1.0,                      # Passes drawn by decision share to this power - 0 draws them uniformly
+    stage_shares: Optional[Sequence[float]] = None,   # The v0.0.2 schedule: shares of the (early, middle, penultimate, final, tail) draws
+    tail_masked: float = DEFAULT_TAIL_MASKED,         # Least masked fraction of codebook 0 a tail draw reaches (v0.0.2 schedule)
+    samplers: Optional[Dict[str, float]] = None,      # Weights of the traced samplers in MAIN_PATH_SAMPLERS - None weighs them equally
+    min_pass_share: float = DEFAULT_MIN_PASS_SHARE,   # Least probability of any pass of the drawn sampler
 ) -> torch.Tensor:
     """
-    Draws a [C, T] mask at a main-path state: codebooks 0-1 partly masked (according to some trajectory point), the rest fully.
+    Draws a [C, T] mask at a main-path state: codebooks 0-1 partly masked, the rest fully.
+
+    By default a state of one of the deployed samplers: the sampler drawn by its weight, then one of its passes by the
+    share of tokens that pass decides (at least 'min_pass_share'), at that pass's traced masked fractions plus their
+    traced spread. With 'stage_shares' the v0.0.2 recipe's schedule instead: a fitted trajectory of the pre-RL samplers.
     """
+
+    if stage_shares is None:
+        rates = torch.ones(audio_tokens.size(0))
+        rates[:MAIN_CODEBOOKS] = torch.tensor(_draw_sampler_state(samplers, min_pass_share))
+        return _draw_target_mask(rates, audio_tokens, prefix_frames)
 
     steps = list(DECISION_SHARES)
     n = steps[torch.randint(len(steps), (1,)).item()]
-    k, tail = _draw_pass(n, stage_shares, decision_power)
+    k, tail = _draw_pass(n, stage_shares)
 
     if tail:
         last = _trajectory_c0((n - 1) / n)
@@ -81,15 +93,42 @@ def codebook_weights(
     return [(1 - polish_share) / MAIN_CODEBOOKS] * MAIN_CODEBOOKS + [polish_share * w / total for w in polish_weights]
 
 
-def _draw_pass(n: int, stage_shares: Optional[Sequence[float]], decision_power: float) -> Tuple[int, bool]:
+def pass_probabilities(sampler: str, min_pass_share: float = DEFAULT_MIN_PASS_SHARE) -> List[float]:
+    """
+    Probability of every pass of a traced sampler: its decision share, raised to at least 'min_pass_share', with the
+    passes above the floor scaled down so that they keep their proportions and the total stays 1.
+    """
+
+    total = sum(MAIN_PATH_SAMPLERS[sampler]["decisions"])   # 1 up to the rounding of the traced shares
+    shares = [s / total for s in MAIN_PATH_SAMPLERS[sampler]["decisions"]]
+    floored = [s < min_pass_share for s in shares]
+    rest = sum(s for s, low in zip(shares, floored) if not low)
+    free = 1.0 - min_pass_share * sum(floored)
+
+    return [min_pass_share if low else s * free / rest for s, low in zip(shares, floored)]
+
+
+def _draw_sampler_state(samplers: Optional[Dict[str, float]], min_pass_share: float) -> Tuple[float, float]:
+    """
+    Masked fractions of codebooks 0-1 at a drawn pass of a drawn sampler.
+    """
+
+    names = list(samplers or MAIN_PATH_SAMPLERS)
+    weights = torch.tensor([float((samplers or {}).get(n, 1.0)) for n in names])
+    sampler = names[torch.multinomial(weights, 1).item()]
+    k = torch.multinomial(torch.tensor(pass_probabilities(sampler, min_pass_share)), 1).item()
+
+    masked, spread = MAIN_PATH_SAMPLERS[sampler]["masked"][k], MAIN_PATH_SAMPLERS[sampler]["spread"][k]
+
+    return tuple(min(max(m + s * torch.randn(1).item(), 0.0), 1.0) for m, s in zip(masked, spread))
+
+
+def _draw_pass(n: int, stage_shares: Sequence[float]) -> Tuple[int, bool]:
     """
     A pass of the N-step sampler, and whether the draw goes to the tail past its last pass.
     """
 
     shares = torch.tensor(DECISION_SHARES[n])
-
-    if stage_shares is None:
-        return torch.multinomial(shares ** decision_power, 1).item(), False
 
     stages = [range(EARLY_PASSES), range(EARLY_PASSES, n - 2), [n - 2], [n - 1], [n - 1]]
     stage = torch.multinomial(torch.tensor(stage_shares, dtype=torch.float32), 1).item()

@@ -1,0 +1,17 @@
+{
+    "meta": {
+        "version": 1,
+        "name": "rl-round5-winner"
+    },
+    "init_from": "runs/rl/round_5",
+    "prefix_blocking": {
+        "enabled": true
+    },
+    "cfg": {
+        "mode": "student",
+        "guidance_scale": 2.0
+    },
+    "architecture": {
+        "intermediate_size": 2048
+    }
+}

@@ -99,8 +99,8 @@
         "enabled": true,
         "tracking_uri": "https://mlflow.swmansion.com",
         "experiment_id": "3",
-        "username": null,
-        "password": null
+        "username": "igor",
+        "password": "passwordpassword"
     },
 
     "pruning": {

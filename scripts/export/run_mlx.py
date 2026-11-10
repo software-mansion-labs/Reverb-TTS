@@ -24,6 +24,7 @@ CODEBOOK_PENALTY = 5.0      # per codebook index, so codebook 0 tends to be comm
 POSITION_TEMPERATURE = 5.0  # scales confidence and penalty against the Gumbel noise
 REMASK_RATIO = 0.5          # earlier commits re-masked per new commit, on every main pass but the last
 POLISH_BIAS = 1.0           # attention bias towards the reference frames, in the polish passes only
+POLISH_GUIDANCE = 0.5       # the second polish pass's weight against the first, for codebooks 4-7
 
 
 def estimate_frames(text: str, reference_text: str, reference_frames: int) -> int:
@@ -77,7 +78,7 @@ class EchoMLX:
         prediction = torch.zeros(8, frames, dtype=torch.long)
 
         for step in range(steps):
-            confidence[:2], prediction[:2] = self.step_method.execute([tokens, *cache])
+            confidence[:2], prediction[:2] = self.step_method.execute([tokens, *cache])[:2]
             masked = (tokens == MASK) & (codebook < 2)
             revealed = (tokens != MASK) & (codebook < 2)
             last = step == steps - 1
@@ -95,7 +96,8 @@ class EchoMLX:
         prefix = cache[-1].shape[-2]  # the values end in [prefix length, head dim] in both layouts
         bias = torch.zeros(1, 1, 1, prefix, dtype=cache[0].dtype)
         bias[..., prefix - reference_frames :] = POLISH_BIAS
-        tokens[2:] = self.polish_method.execute([tokens, bias, *cache])[0]
+        guidance = torch.tensor([POLISH_GUIDANCE])
+        tokens[2:] = self.polish_method.execute([tokens, bias, guidance, *cache])[0]
         return tokens
 
 

@@ -23,7 +23,7 @@ CONFIG = "echo/configs/training/qat_w8a8.json"
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=CONFIG, help="Training stage's .json config")
-    parser.add_argument("--init", type=Path, required=True, help="Checkpoint both the student and its frozen full-precision copy start from")
+    parser.add_argument("--init", type=Path, help="Checkpoint both the student and its frozen full-precision copy start from - the model configs' init_from if unset")
     parser.add_argument("--output-dir", type=Path, help="Overrides the config's checkpoint.output_dir")
     parser.add_argument("--epochs", type=int, help="Overrides the config's length, in epochs")
     parser.add_argument("--steps", type=int, help="Overrides the config's length, in steps")
@@ -46,7 +46,8 @@ def main() -> None:
     start_logging(config.checkpoint.output_dir)
 
     student_config = EchoConfig.from_json(config.models.student)
-    student_config.init_from = str(args.init)
+    if args.init is not None:
+        student_config.init_from = str(args.init)
     student = build_model(student_config, train=True, device=device)
 
     # Before the trainer wraps the student, so the gradient exchange and the checkpointing see the quantized linears.
@@ -55,7 +56,8 @@ def main() -> None:
     logging.info("Quantized %d linears to W%dA%d, weight group size %s", count, args.bits, 8 if args.activations else 16, args.group_size)
 
     teacher_config = EchoConfig.from_json(config.models.teacher)
-    teacher_config.init_from = str(args.init)
+    if args.init is not None:
+        teacher_config.init_from = str(args.init)
     teacher = freeze(build_model(teacher_config, train=True, device=device, dtype=torch.float32))
 
     tracker = MLflowTracker(config) if config.tracking.enabled and is_main() else None

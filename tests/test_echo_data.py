@@ -17,7 +17,8 @@ from echo.data import (
     EchoDataset,
     EchoPreprocessor,
 )
-from echo.masking.audio_masking import build_main_stage_audio_mask, build_polish_stage_audio_mask
+from echo.masking.audio_masking import build_main_stage_audio_mask, build_polish_stage_audio_mask, pass_probabilities
+from echo.masking.constants import MAIN_PATH_SAMPLERS
 
 CODEBOOKS = 8
 PREFIX_TOKENS = 40
@@ -373,27 +374,66 @@ def test_main_stage_mask_masks_the_polished_codebooks_fully() -> None:
 
         assert not mask[:, :100].any()
         assert (rates[2:] == 1.0).all()
-        # Codebook 1 trails codebook 0, and neither goes past the last pass of the longest sampler.
-        assert 0.45 < float(rates[0]) and float(rates[0]) <= float(rates[1]) + 0.05
+        # Codebook 1 trails codebook 0, and neither goes past the last pass of the traced samplers (s8: 0.41 masked).
+        assert 0.3 < float(rates[0]) and float(rates[0]) <= float(rates[1]) + 0.05
 
 
-def test_main_stage_mask_replays_the_decisions() -> None:
+def test_pass_probabilities_floor_the_early_passes_and_keep_the_rest_in_proportion() -> None:
+    for name, sampler in MAIN_PATH_SAMPLERS.items():
+        shares, probabilities = sampler["decisions"], pass_probabilities(name, 0.01)
+
+        assert sum(probabilities) == pytest.approx(1.0)
+        assert min(probabilities) >= 0.01 - 1e-12
+        raised = [p for s, p in zip(shares, probabilities) if s >= 0.01]
+        kept = [s for s in shares if s >= 0.01]
+        assert [p / raised[-1] for p in raised] == pytest.approx([s / kept[-1] for s in kept])
+        assert pass_probabilities(name, 0.0) == pytest.approx(list(shares), abs=1e-4)
+
+
+@pytest.mark.parametrize("sampler", list(MAIN_PATH_SAMPLERS))
+def test_main_stage_mask_replays_a_traced_sampler(sampler) -> None:
+    torch.manual_seed(0)
+    audio = _audio(4000)
+    states = MAIN_PATH_SAMPLERS[sampler]["masked"]
+    probabilities = pass_probabilities(sampler, 0.01)
+
+    draws = torch.stack([build_main_stage_audio_mask(audio, 0, samplers={sampler: 1.0}).float().mean(dim=1)[:2]
+                         for _ in range(4000)])
+    # Each draw belongs to the traced pass whose state is nearest: the passes come up at their probabilities.
+    centres = torch.tensor(states)
+    nearest = torch.cdist(draws, centres).argmin(dim=1)
+    frequencies = torch.bincount(nearest, minlength=len(states)).float() / len(draws)
+    assert frequencies.tolist() == pytest.approx(probabilities, abs=0.02)
+    # And codebooks 0-1 sit at the traced fractions on average.
+    expected = sum(p * torch.tensor(s) for p, s in zip(probabilities, states))
+    assert draws.mean(dim=0).tolist() == pytest.approx(expected.tolist(), abs=0.01)
+
+
+def test_main_stage_mask_mixes_the_samplers_by_weight() -> None:
+    torch.manual_seed(0)
+    audio = _audio(4000)
+
+    def c0_mean(samplers) -> float:
+        return float(torch.tensor([float(build_main_stage_audio_mask(audio, 0, samplers=samplers).float().mean(dim=1)[0])
+                                   for _ in range(3000)]).mean())
+
+    def expected(name: str) -> float:
+        return sum(p * s[0] for p, s in zip(pass_probabilities(name), MAIN_PATH_SAMPLERS[name]["masked"]))
+
+    assert c0_mean(None) == pytest.approx(sum(expected(n) for n in MAIN_PATH_SAMPLERS) / len(MAIN_PATH_SAMPLERS), abs=0.01)
+    assert c0_mean({"s8": 3.0, "s6_rmc025": 1.0}) == pytest.approx(0.75 * expected("s8") + 0.25 * expected("s6_rmc025"),
+                                                                    abs=0.01)
+
+
+def test_main_stage_mask_keeps_the_v002_schedule() -> None:
     torch.manual_seed(0)
     audio = _audio(2000)
-
-    # Most draws sit at the last pass of a sampler, where codebook 0 is 0.60-0.74 masked.
-    c0 = [float(build_main_stage_audio_mask(audio, 0).float().mean(dim=1)[0]) for _ in range(1000)]
-    assert sum(0.55 < c < 0.79 for c in c0) / len(c0) > 0.7
 
     # An all-early share keeps codebook 0 nearly fully masked; an all-tail one reaches past every sampler.
     early = [float(build_main_stage_audio_mask(audio, 0, (1, 0, 0, 0, 0)).float().mean(dim=1)[0]) for _ in range(200)]
     tail = [float(build_main_stage_audio_mask(audio, 0, (0, 0, 0, 0, 1)).float().mean(dim=1)[0]) for _ in range(200)]
     assert min(early) > 0.9
     assert min(tail) < 0.5 and max(tail) < 0.85
-
-    # Drawn uniformly, the passes before the last two - codebook 0 above 0.85 - take most of the draws.
-    uniform = [float(build_main_stage_audio_mask(audio, 0, decision_power=0.0).float().mean(dim=1)[0]) for _ in range(1000)]
-    assert sum(c > 0.85 for c in uniform) / len(uniform) == pytest.approx(0.65, abs=0.1)
 
 
 def test_polish_stage_mask_reveals_codebooks_0_1_and_masks_the_rest() -> None:

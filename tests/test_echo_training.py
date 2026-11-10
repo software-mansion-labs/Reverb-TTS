@@ -121,7 +121,15 @@ def test_masking_fields_are_validated() -> None:
     with pytest.raises(ValueError, match="tail_masked"):
         _config(masking={"tail_masked": 1.0}).validate()
 
+    with pytest.raises(ValueError, match="samplers"):
+        _config(masking={"samplers": {"s8": 1.0, "s12": 1.0}}).validate()
+    with pytest.raises(ValueError, match="samplers"):
+        _config(masking={"samplers": {"s8": 0.0}}).validate()
+    with pytest.raises(ValueError, match="min_pass_share"):
+        _config(masking={"min_pass_share": 0.2}).validate()
+
     _config(masking={"stage_shares": (0.04, 0.15, 0.20, 0.41, 0.20)}).validate()
+    _config(masking={"samplers": {"s8": 1.0, "s6_rmc025": 0.5}, "min_pass_share": 0.02}).validate()
 
 
 # ---------- What the properties hand to the constructors ----------
@@ -145,7 +153,8 @@ def test_preprocessor_kwargs_reach_the_mask_builders() -> None:
     pre = EchoPreprocessor(**config.preprocessor_kwargs)
 
     assert pre.polish_share == 0.4
-    assert pre.masking_kwargs == {"stage_shares": (0, 0, 0, 0, 1), "tail_masked": 0.3}
+    assert pre.masking_kwargs == {"stage_shares": (0, 0, 0, 0, 1), "tail_masked": 0.3, "samplers": None,
+                                  "min_pass_share": 0.01}
 
     audio = torch.randint(0, 1000, (8, 400))
     assert not pre.draw_mask(audio, 50, polish=True)[:2].any()

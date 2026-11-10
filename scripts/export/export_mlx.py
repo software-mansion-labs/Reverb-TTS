@@ -3,8 +3,10 @@ int8 or int4 weights from the quantized ones (W8A16, W4A16), computed in fp16.
 
 The program has three methods, sharing one copy of the weights:
 - prefill(text [L], reference [8, R]) -> keys, values [layers, 1, kv heads, L + R, head dim]: the prefix, run once.
-- step(tokens [8, T], keys, values) -> confidence, prediction [2, T]: one main pass, codebooks 0-1 only.
-- polish(tokens [8, T], bias [1, 1, 1, L + R], keys, values) -> [6, T]: both polish passes, codebooks 2-7.
+- step(tokens [8, T], keys, values) -> confidence, prediction, held [2, T]: one main pass, codebooks 0-1 only;
+  held is the log-probability of the code each slot holds now (meaningless for masked slots), for remasking.
+- polish(tokens [8, T], bias [1, 1, 1, L + R], guidance [1], keys, values) -> [6, T]: both polish passes, codebooks
+  2-7; guidance is the second pass's weight against the first (the runtime notebooks use 0.5).
 
 Run it with the ExecuTorch venv: ../executorch/.venv/bin/python scripts/export/export_mlx.py ...
 """
@@ -34,9 +36,6 @@ DTYPE = torch.float16
 # Upper bounds of the dynamic lengths, in positions: the prefix (prompt tokens + reference frames) and the target.
 MAX_PREFIX = 1024
 MAX_FRAMES = 1024
-
-# The polish passes guide codebooks 4-7 against the first pass's view of them, as the runtime notebooks do.
-POLISH_GUIDANCE = 0.5
 
 
 def frozen(t: torch.Tensor) -> torch.nn.Parameter:
@@ -251,20 +250,26 @@ class Prefill(torch.nn.Module):
 
 class Step(torch.nn.Module):
     """
-    One main pass: the log-probability of the best code of codebooks 0-1 in every slot, and that code. The softmax
-    counts the mask, but the mask is never a prediction.
+    One main pass: the log-probability of the best code of codebooks 0-1 in every slot, that code, and the
+    log-probability of the code the slot holds now (remasking withdraws the held codes that became least likely). The
+    softmax counts the mask, but the mask is never a prediction.
     """
 
     def __init__(self, echo: Echo) -> None:
         super().__init__()
         self.echo = echo
 
-    def forward(self, tokens: torch.Tensor, keys: torch.Tensor, values: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, tokens: torch.Tensor, keys: torch.Tensor, values: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         h, _, _ = self.echo.run(self.echo.embed_audio(tokens), 2 * keys.shape[3], (keys, values), None)
         logits = self.echo.logits(h, self.echo.main_heads)
         normalizer = torch.logsumexp(logits, dim=-1)
         logits = logits[..., : self.echo.mask_id]
-        return (logits.amax(-1) - normalizer).t(), logits.argmax(-1).t()
+        # The held code's logit, without gather (the MLX backend has none): the largest logit at its id.
+        codes = torch.arange(self.echo.mask_id, device=tokens.device)
+        held = logits.masked_fill(codes != tokens[:2].t().unsqueeze(-1), -torch.inf).amax(-1)
+        return (logits.amax(-1) - normalizer).t(), logits.argmax(-1).t(), (held - normalizer).t()
 
 
 class Polish(torch.nn.Module):
@@ -278,7 +283,9 @@ class Polish(torch.nn.Module):
         super().__init__()
         self.echo = echo
 
-    def forward(self, tokens: torch.Tensor, bias: torch.Tensor, keys: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, tokens: torch.Tensor, bias: torch.Tensor, guidance: torch.Tensor, keys: torch.Tensor, values: torch.Tensor
+    ) -> torch.Tensor:
         mask = torch.cat([bias, bias.new_zeros(1, 1, 1, tokens.shape[1])], dim=-1)
         position, mid = 2 * keys.shape[3], self.echo.mask_id
         h, _, _ = self.echo.run(self.echo.embed_audio(tokens), position, (keys, values), mask)
@@ -287,7 +294,7 @@ class Polish(torch.nn.Module):
         tokens = torch.cat([tokens[:2], middle.t(), tokens[4:]])
         h, _, _ = self.echo.run(self.echo.embed_audio(tokens), position, (keys, values), mask)
         second = self.echo.logits(h, self.echo.polish_heads[:, 2 * self.echo.codes :])[..., :mid]
-        fine = ((1 + POLISH_GUIDANCE) * second - POLISH_GUIDANCE * first[:, 2:]).argmax(-1)
+        fine = ((1 + guidance) * second - guidance * first[:, 2:]).argmax(-1)
         return torch.cat([middle, fine], dim=1).t()
 
 
@@ -311,8 +318,8 @@ def export_methods(echo: Echo) -> dict:
             ),
             "polish": export(
                 Polish(echo),
-                (tokens, torch.zeros(1, 1, 1, 300, dtype=DTYPE), *cache),
-                dynamic_shapes=({1: frames}, {3: prefix}, {3: prefix}, {3: prefix}),
+                (tokens, torch.zeros(1, 1, 1, 300, dtype=DTYPE), torch.tensor([0.5]), *cache),
+                dynamic_shapes=({1: frames}, {3: prefix}, None, {3: prefix}, {3: prefix}),
                 strict=False,
             ),
         }

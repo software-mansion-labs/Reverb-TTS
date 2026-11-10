@@ -8,7 +8,13 @@ from echo.data.constants import DEFAULT_TOKENIZER
 from echo.data.sampler import BatchPacking
 from echo.eval.constants import PREFIX_RATIO
 from echo.masking.audio_masking import codebook_weights
-from echo.masking.constants import DEFAULT_POLISH_SHARE, DEFAULT_POLISH_WEIGHTS, DEFAULT_TAIL_MASKED
+from echo.masking.constants import (
+    DEFAULT_MIN_PASS_SHARE,
+    DEFAULT_POLISH_SHARE,
+    DEFAULT_POLISH_WEIGHTS,
+    DEFAULT_TAIL_MASKED,
+    MAIN_PATH_SAMPLERS,
+)
 from echo.training.meta import MIXED_PRECISION_DTYPES
 from echo.training.types import AnnealShape, LRSchedulerType, MixedPrecision
 from echo.utils.config_utils import (
@@ -75,8 +81,10 @@ class PreprocessingConfig:
 class MaskingConfig:
     polish_share: float = DEFAULT_POLISH_SHARE   # Share of samples at the polish state, scored on codebooks 2-7; the rest are main-path, scored on 0-1
     polish_weights: Tuple[float, ...] = DEFAULT_POLISH_WEIGHTS   # Loss weights of codebooks 2-7 within the polish samples
-    stage_shares: Optional[Tuple[float, ...]] = None   # Shares of the (early, middle, penultimate, final, tail) main-path draws; None replays the decisions
-    tail_masked: float = DEFAULT_TAIL_MASKED   # Least masked fraction of codebook 0 the tail reaches
+    stage_shares: Optional[Tuple[float, ...]] = None   # The v0.0.2 schedule: shares of the (early, middle, penultimate, final, tail) main-path draws; None replays the traced samplers below
+    tail_masked: float = DEFAULT_TAIL_MASKED   # Least masked fraction of codebook 0 the tail reaches (v0.0.2 schedule)
+    samplers: Optional[Dict[str, float]] = None   # Weights of the traced deployed samplers (MAIN_PATH_SAMPLERS) whose passes are replayed; None weighs all equally
+    min_pass_share: float = DEFAULT_MIN_PASS_SHARE   # Least probability of any pass of a replayed sampler; the rest follow its decision shares
 
 
 # Subconfig - the loss terms of one sample path
@@ -308,6 +316,19 @@ class EchoTrainingConfig:
             f"masking.stage_shares needs 5 non-negative shares summing to 1, got {masking.stage_shares}",
         )
         check_range("masking.tail_masked", masking.tail_masked, 0, 1, closed=False)
+        check(
+            masking.samplers is None
+            or (
+                set(masking.samplers) <= set(MAIN_PATH_SAMPLERS)
+                and all(w >= 0.0 for w in masking.samplers.values())
+                and sum(masking.samplers.values()) > 0.0
+            ),
+            f"masking.samplers needs non-negative weights of {sorted(MAIN_PATH_SAMPLERS)}, got {masking.samplers}",
+        )
+        check(
+            0.0 <= masking.min_pass_share * max(len(v["decisions"]) for v in MAIN_PATH_SAMPLERS.values()) < 1.0,
+            f"masking.min_pass_share has to leave the passes a share above it, got {masking.min_pass_share}",
+        )
 
         loss = self.loss
         for name, path in (("main", loss.main), ("polish", loss.polish)):
@@ -465,7 +486,12 @@ class EchoTrainingConfig:
         Arguments the main-path mask builder takes.
         """
 
-        return {"stage_shares": self.masking.stage_shares, "tail_masked": self.masking.tail_masked}
+        return {
+            "stage_shares": self.masking.stage_shares,
+            "tail_masked": self.masking.tail_masked,
+            "samplers": self.masking.samplers,
+            "min_pass_share": self.masking.min_pass_share,
+        }
 
     @property
     def codebook_weights(self) -> List[float]:
