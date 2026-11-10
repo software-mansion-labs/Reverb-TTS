@@ -1,2 +1,0 @@
-runs/pretrain-final/**/*.safetensors filter=lfs diff=lfs merge=lfs -text
-runs/pretrain-final/**/*.pt filter=lfs diff=lfs merge=lfs -text
