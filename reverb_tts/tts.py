@@ -6,6 +6,7 @@ The public API: load a model, make a voice from a reference recording, and speak
     audio = tts.generate("Text to speak.", voice, language="en", seed=0)  # float32 samples at tts.sample_rate
 """
 
+import json
 import logging
 import random
 from dataclasses import dataclass, replace
@@ -14,17 +15,18 @@ from typing import Any, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 import torch
-from huggingface_hub import snapshot_download
+from huggingface_hub import hf_hub_download, list_repo_files, snapshot_download
 from transformers import HiggsAudioV2TokenizerModel, Qwen2Tokenizer
 
 from reverb_tts.audio import AudioInput, load_audio, trim_silence
-from reverb_tts.model import Network
+from reverb_tts.model import CODEBOOKS, MASK, Network
 from reverb_tts.sampler import Batch, Prompt, SamplerConfig, sample
 from reverb_tts.text import check_language, estimate_frames, prepare_text, split_text
 
 logger = logging.getLogger(__name__)
 
 REPOSITORY, REVISION = "software-mansion/Echo", "v1.0.0"  # the released weights
+PRESETS = "software-mansion/Reverb-TTS"  # preset voices, as voices/<name>.json
 CODEC, CODEC_REVISION = "eustlb/higgs-audio-v2-tokenizer", "0e3a9177c2991016b8e5e17d23aa474ee665bef2"
 VARIANTS = ("fp32", "int8", "int8a8", "int4")
 FRAME_RATE = 25              # codec frames per second
@@ -58,20 +60,33 @@ class Voice:
 
     @classmethod
     def load(cls, path: Union[str, Path]) -> "Voice":
-        data = np.load(path)
-        return cls(torch.from_numpy(data["codes"].astype(np.int64)), str(data["text"]), str(data["language"]))
+        """
+        Reads a voice from an .npz file written by `save`, or from a preset .json file: {codes, transcript, language},
+        the codes as 8 x frames integers, row-major, and the transcript already prepared.
+        """
+
+        if Path(path).suffix != ".json":
+            data = np.load(path)
+            return cls(torch.from_numpy(data["codes"].astype(np.int64)), str(data["text"]), str(data["language"]))
+        data = json.loads(Path(path).read_text())
+        codes = torch.tensor(data["codes"], dtype=torch.long)
+        if codes.numel() == 0 or codes.numel() % CODEBOOKS or not 0 <= int(codes.min()) <= int(codes.max()) < MASK:
+            raise ValueError(f"{path}: expected codes as {CODEBOOKS} x frames integers below {MASK}")
+        return cls(codes.view(CODEBOOKS, -1), data["transcript"], check_language(data["language"]))
 
 
 class TTS:
     """
-    A loaded model with its tokenizer and audio codec. `sampler` holds the default sampler settings, and
-    `batch_frames` caps the target frames generated together, padding included.
+    A loaded model with its tokenizer and audio codec. `sampler` holds the default sampler settings, `batch_frames`
+    caps the target frames generated together, padding included, and `presets` is a local folder of preset voices
+    (by default they come from Hugging Face).
     """
 
     def __init__(self, network: Network, tokenizer: Any, codec: Any, sampler: Optional[SamplerConfig] = None,
-                 batch_frames: int = 8192) -> None:
+                 batch_frames: int = 8192, presets: Optional[Union[str, Path]] = None, token: Optional[str] = None) -> None:
         self.network, self.tokenizer, self.codec = network, tokenizer, codec
         self.sampler, self.batch_frames = sampler or SamplerConfig(), batch_frames
+        self.presets, self.token = (Path(presets) if presets is not None else None), token
 
     @property
     def device(self) -> torch.device:
@@ -110,7 +125,31 @@ class TTS:
         network = Network.load(weights).to(device, dtype or _default_dtype(device))
         revision = codec_revision or (CODEC_REVISION if codec == CODEC else None)
         codec_model = HiggsAudioV2TokenizerModel.from_pretrained(codec, revision=revision).to(device).eval()
-        return cls(network, Qwen2Tokenizer.from_pretrained(tokenizer), codec_model, sampler)
+        local = Path(name_or_path).expanduser() / "voices"
+        return cls(network, Qwen2Tokenizer.from_pretrained(tokenizer), codec_model, sampler,
+                   presets=local if local.is_dir() else None, token=token)
+
+    def preset_voices(self) -> List[str]:
+        """
+        The names of the preset voices.
+        """
+
+        if self.presets is not None:
+            return sorted(p.stem for p in self.presets.glob("*.json"))
+        files = list_repo_files(PRESETS, token=self.token)
+        return sorted(Path(f).stem for f in files if f.startswith("voices/") and f.endswith(".json"))
+
+    def preset_voice(self, name: str) -> Voice:
+        """
+        A preset voice, by name (see `preset_voices`): ready to use, with no recording to encode.
+        """
+
+        names = self.preset_voices()
+        if name not in names:
+            raise ValueError(f"unknown preset voice {name!r}, expected one of: {', '.join(names)}")
+        if self.presets is not None:
+            return Voice.load(self.presets / f"{name}.json")
+        return Voice.load(hf_hub_download(PRESETS, f"voices/{name}.json", token=self.token))
 
     @torch.inference_mode()
     def voice(self, audio: AudioInput, text: str, language: str, *, sample_rate: Optional[int] = None,

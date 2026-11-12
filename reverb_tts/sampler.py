@@ -1,5 +1,5 @@
 """
-The sampler: `steps` main passes decide codebooks 0-1, then two polish passes decide codebooks 2-7 (docs/pipeline.md).
+The sampler: `steps` main passes decide codebooks 0-1, then two polish passes decide codebooks 2-7.
 Takes are generated in batches: each prompt's prefix runs once, and every pass runs over the target frames only.
 """
 

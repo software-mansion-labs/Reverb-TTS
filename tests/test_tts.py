@@ -30,6 +30,33 @@ def test_a_voice_survives_a_round_trip_to_disk(voice: Voice, tmp_path: Path) -> 
     assert torch.equal(loaded.codes, voice.codes) and (loaded.text, loaded.language) == (voice.text, voice.language)
 
 
+def write_preset(path: Path, codes: List[int], language: str = "en") -> Path:
+    path.write_text(json.dumps({"name": path.stem, "language": language, "transcript": "Hello there.", "codes": codes}))
+    return path
+
+
+def test_a_preset_file_loads_as_a_voice(tmp_path: Path) -> None:
+    loaded = Voice.load(write_preset(tmp_path / "anna.json", list(range(8 * 5))))
+    assert loaded.codes.shape == (8, 5) and loaded.codes[1, 0] == 5  # row-major: one codebook per row
+    assert (loaded.text, loaded.language) == ("Hello there.", "en")
+
+
+@pytest.mark.parametrize("codes, language", [(list(range(9)), "en"), ([1024] * 8, "en"), ([0] * 8, "xx")])
+def test_a_malformed_preset_file_is_rejected(tmp_path: Path, codes: List[int], language: str) -> None:
+    with pytest.raises(ValueError):
+        Voice.load(write_preset(tmp_path / "bad.json", codes, language))
+
+
+def test_preset_voices_come_from_a_local_folder(tts: TTS, tmp_path: Path) -> None:
+    write_preset(tmp_path / "anna.json", [3] * 16)
+    write_preset(tmp_path / "piotr.json", [4] * 16, "pl")
+    tts.presets = tmp_path
+    assert tts.preset_voices() == ["anna", "piotr"]
+    assert tts.preset_voice("piotr").language == "pl"
+    with pytest.raises(ValueError, match="anna, piotr"):
+        tts.preset_voice("nobody")
+
+
 def test_generate_returns_one_take_or_a_list(tts: TTS, voice: Voice) -> None:
     single = tts.generate("Hello there.", voice, "en", seed=0)
     assert isinstance(single, np.ndarray) and single.dtype == np.float32 and len(single) > 0
