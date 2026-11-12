@@ -10,7 +10,7 @@ from typing import List, Sequence
 import torch
 from transformers import DynamicCache
 
-from placeholder_tts.model import CODEBOOKS, CODES, MASK, Network
+from reverb_tts.model import CODEBOOKS, CODES, MASK, Network
 
 
 @dataclass(frozen=True)

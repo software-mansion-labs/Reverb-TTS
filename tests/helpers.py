@@ -6,7 +6,7 @@ from typing import Dict, Optional
 import torch
 from safetensors.torch import save_file
 
-from placeholder_tts.model import QUANTIZED, SCALE, Network
+from reverb_tts.model import QUANTIZED, SCALE, Network
 
 LLM_CONFIG = {
     "vocab_size": 64, "hidden_size": 32, "intermediate_size": 64, "num_hidden_layers": 2, "num_attention_heads": 4,

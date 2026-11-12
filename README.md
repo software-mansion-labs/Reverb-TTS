@@ -1,8 +1,6 @@
-# placeholder_tts
+# Reverb
 
-> `placeholder_tts` is a placeholder for the package's final name.
-
-**placeholder_tts** is a **voice-cloning-first text-to-speech model**. Built on top of one of the leading open-weight
+**Reverb** is a **voice-cloning-first text-to-speech model**. Built on top of one of the leading open-weight
 TTS models, it combines exceptional quality in mimicking any reference speaker, including prosody, emotions and voice
 timbre, with cost efficiency and high performance, allowing it to run locally on mobile and desktop systems. It speaks
 seven languages: English, German, French, Spanish, Italian, Polish and Portuguese.
@@ -20,7 +18,7 @@ private, log in first (`hf auth login`) or set `HF_TOKEN`.
 
 ```python
 import soundfile as sf
-from placeholder_tts import TTS
+from reverb_tts import TTS
 
 tts = TTS.from_pretrained()
 voice = tts.voice("reference.wav", "The exact transcript of the reference recording.", language="en")
@@ -35,7 +33,7 @@ of clean speech from one speaker, with a transcript that matches it exactly; `la
 can be saved and loaded, so the recording needn't be encoded again:
 
 ```python
-from placeholder_tts import Voice
+from reverb_tts import Voice
 
 voice.save("anna.npz")
 voice = Voice.load("anna.npz")
@@ -58,7 +56,7 @@ that is already prepared.
 ```python
 audio = tts.generate(text, voice, language="en", steps=12, remasking=False)
 
-from placeholder_tts import SamplerConfig
+from reverb_tts import SamplerConfig
 tts = TTS.from_pretrained(sampler=SamplerConfig(steps=12, polish_guidance=0.5))
 ```
 
@@ -104,26 +102,11 @@ Three changes make each generation cheap:
 - **A two-stage sampler.** 8 passes decide codebooks 0-1, then two polish passes decide codebooks 2-7: 10 forwards in
   all, against OmniVoice's default of 32 guided passes (64 forwards).
 
-| | OmniVoice | placeholder_tts |
+| | OmniVoice | Reverb |
 |---|---|---|
 | Parameters | 613M | **297M** |
 | Weights | 2.45 GB (fp32) | 1.19 GB (fp32), 307 MB (int8), 191 MB (int4) |
 | Forwards per generation | 64 (32 passes with CFG) | **10** |
-
-## Samples
-
-Each row pairs a reference recording with the model speaking new text in that voice. References are passed through
-the same audio codec as the model's output. The samples come from a prototype of the model, before post-training.
-
-| Voice | Language | Reference | Generated |
-|---|---|---|---|
-| Melissa | English | [reference](assets/samples/melissa_reference.mp4) | [generated](assets/samples/melissa_generated.mp4) |
-| Shepherd | English | [reference](assets/samples/shepherd_reference.mp4) | [generated](assets/samples/shepherd_generated.mp4) |
-| Jordan | English | [reference](assets/samples/jordan_reference.mp4) | [generated](assets/samples/jordan_generated.mp4) |
-| Missler | German | [reference](assets/samples/missler_reference.mp4) | [generated](assets/samples/missler_generated.mp4) |
-| Jean-Pierre | French | [reference](assets/samples/jean_pierre_reference.mp4) | [generated](assets/samples/jean_pierre_generated.mp4) |
-| Corrado | Italian | [reference](assets/samples/corrado_reference.mp4) | [generated](assets/samples/corrado_generated.mp4) |
-| Bruno | Portuguese | [reference](assets/samples/bruno_reference.mp4) | [generated](assets/samples/bruno_generated.mp4) |
 
 ## Tests
 

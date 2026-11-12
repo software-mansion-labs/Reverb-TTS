@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from placeholder_tts.model import CODEBOOKS, CODES, Network
+from reverb_tts.model import CODEBOOKS, CODES, Network
 from helpers import write_checkpoint
 
 

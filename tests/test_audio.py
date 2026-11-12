@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from placeholder_tts.audio import load_audio, trim_silence
+from reverb_tts.audio import load_audio, trim_silence
 
 RATE = 24000
 

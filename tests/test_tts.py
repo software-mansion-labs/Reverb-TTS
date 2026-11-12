@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 import torch
 
-import placeholder_tts.tts as tts_module
-from placeholder_tts import TTS, SamplerConfig, Voice
-from placeholder_tts.sampler import Prompt
-from placeholder_tts.tts import _resolve
+import reverb_tts.tts as tts_module
+from reverb_tts import TTS, SamplerConfig, Voice
+from reverb_tts.sampler import Prompt
+from reverb_tts.tts import _resolve
 
 RATE = 24000
 

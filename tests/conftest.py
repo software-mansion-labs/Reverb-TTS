@@ -2,8 +2,8 @@ import pytest
 import torch
 
 from helpers import LLM_CONFIG, StubCodec, StubTokenizer
-from placeholder_tts.model import Network
-from placeholder_tts.tts import TTS
+from reverb_tts.model import Network
+from reverb_tts.tts import TTS
 
 
 @pytest.fixture

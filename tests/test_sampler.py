@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from placeholder_tts.model import MASK, Network
-from placeholder_tts.sampler import Batch, Prompt, SamplerConfig, sample
+from reverb_tts.model import MASK, Network
+from reverb_tts.sampler import Batch, Prompt, SamplerConfig, sample
 
 
 def _prompts(seed: int = 0) -> list:

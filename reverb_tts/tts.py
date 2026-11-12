@@ -17,10 +17,10 @@ import torch
 from huggingface_hub import snapshot_download
 from transformers import HiggsAudioV2TokenizerModel, Qwen2Tokenizer
 
-from placeholder_tts.audio import AudioInput, load_audio, trim_silence
-from placeholder_tts.model import Network
-from placeholder_tts.sampler import Batch, Prompt, SamplerConfig, sample
-from placeholder_tts.text import check_language, estimate_frames, prepare_text, split_text
+from reverb_tts.audio import AudioInput, load_audio, trim_silence
+from reverb_tts.model import Network
+from reverb_tts.sampler import Batch, Prompt, SamplerConfig, sample
+from reverb_tts.text import check_language, estimate_frames, prepare_text, split_text
 
 logger = logging.getLogger(__name__)
 

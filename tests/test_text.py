@@ -1,6 +1,6 @@
 import pytest
 
-from placeholder_tts.text import estimate_frames, prepare_text, split_text
+from reverb_tts.text import estimate_frames, prepare_text, split_text
 
 
 def test_prepare_text_reads_numbers_out_in_the_training_character_forms() -> None:

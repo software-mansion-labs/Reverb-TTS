@@ -1,9 +1,9 @@
-# How placeholder_tts generates speech
+# How Reverb generates speech
 
-This is the whole inference pipeline, step by step, as `placeholder_tts` runs it. The code is short and follows the
-same order: [text.py](../placeholder_tts/text.py), [audio.py](../placeholder_tts/audio.py),
-[model.py](../placeholder_tts/model.py), [sampler.py](../placeholder_tts/sampler.py) and
-[tts.py](../placeholder_tts/tts.py), which ties them together.
+This is the whole inference pipeline, step by step, as `reverb_tts` runs it. The code is short and follows the
+same order: [text.py](../reverb_tts/text.py), [audio.py](../reverb_tts/audio.py),
+[model.py](../reverb_tts/model.py), [sampler.py](../reverb_tts/sampler.py) and
+[tts.py](../reverb_tts/tts.py), which ties them together.
 
 ## The model
 
