@@ -125,6 +125,8 @@ class TTS:
         network = Network.load(weights).to(device, dtype or _default_dtype(device))
         revision = codec_revision or (CODEC_REVISION if codec == CODEC else None)
         codec_model = HiggsAudioV2TokenizerModel.from_pretrained(codec, revision=revision).to(device).eval()
+        if device.type == "mps":
+            chunk_long_convolutions(codec_model)
         local = Path(name_or_path).expanduser() / "voices"
         return cls(network, Qwen2Tokenizer.from_pretrained(tokenizer), codec_model, sampler,
                    presets=local if local.is_dir() else None, token=token)
@@ -296,6 +298,39 @@ def _pick_device(device: Optional[Union[str, torch.device]]) -> torch.device:
     if torch.backends.mps.is_available():
         return torch.device("mps")
     return torch.device("cpu")
+
+
+MPS_CONV_LIMIT = 32768  # MPS (torch 2.15) computes Conv1d wrongly once an input reaches 65,536 samples; stay well under
+
+
+def chunk_long_convolutions(module: torch.nn.Module, limit: int = MPS_CONV_LIMIT) -> None:
+    """
+    Makes every Conv1d in module run over long inputs in pieces of at most `limit` samples. Each piece takes the
+    overlap its outputs need, so the result is the same convolution. Needed for the codec on MPS: its audio-rate
+    layers see 65,536 samples once a take or a reference passes about 2.7 s.
+    """
+
+    for conv in module.modules():
+        if isinstance(conv, torch.nn.Conv1d) and conv.padding_mode == "zeros" and not isinstance(conv.padding, str):
+            conv.forward = _chunked(conv, limit)
+
+
+def _chunked(conv: torch.nn.Conv1d, limit: int):
+    whole = conv.forward
+    (stride,), (dilation,), (kernel,), (pad,) = conv.stride, conv.dilation, conv.kernel_size, conv.padding
+    span = dilation * (kernel - 1) + 1  # input samples one output sees
+
+    def forward(x: torch.Tensor) -> torch.Tensor:
+        if x.size(-1) + 2 * pad < limit:
+            return whole(x)
+        x = torch.nn.functional.pad(x, (pad, pad))
+        outputs = (x.size(-1) - span) // stride + 1
+        per = max(1, (limit - span) // stride + 1)  # outputs per piece, so a piece's input stays under the limit
+        return torch.cat([torch.nn.functional.conv1d(x[..., o * stride: (min(o + per, outputs) - 1) * stride + span],
+                                                     conv.weight, conv.bias, stride, 0, dilation, conv.groups)
+                          for o in range(0, outputs, per)], -1)
+
+    return forward
 
 
 def _default_dtype(device: torch.device) -> torch.dtype:

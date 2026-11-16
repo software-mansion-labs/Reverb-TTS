@@ -9,7 +9,7 @@ import torch
 import reverb_tts.tts as tts_module
 from reverb_tts import TTS, SamplerConfig, Voice
 from reverb_tts.sampler import Prompt
-from reverb_tts.tts import _resolve
+from reverb_tts.tts import _resolve, chunk_long_convolutions
 
 RATE = 24000
 
@@ -111,3 +111,13 @@ def test_resolve_finds_a_release_layout(tmp_path: Path) -> None:
         _resolve(tmp_path, "int4", None, None)
     with pytest.raises(ValueError, match="variant"):
         _resolve(tmp_path, "int2", None, None)
+
+
+@pytest.mark.parametrize("padding, stride, dilation, groups", [(3, 1, 1, 1), (27, 1, 9, 1), (4, 8, 1, 1), (0, 2, 1, 1), (64, 1, 1, 16)])
+def test_chunked_convolutions_match_the_whole_convolution(padding: int, stride: int, dilation: int, groups: int) -> None:
+    torch.manual_seed(0)
+    conv = torch.nn.Conv1d(32, 32, 7 if groups == 1 else 128, stride, padding, dilation, groups)
+    x = torch.randn(2, 32, 3000)
+    expected = conv(x)
+    chunk_long_convolutions(conv, limit=256)  # small, so the input is cut into many pieces
+    assert torch.allclose(conv(x), expected, atol=1e-5)
