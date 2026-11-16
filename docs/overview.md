@@ -32,7 +32,8 @@ similarity (SIM-o) come from OmniVoice's evaluation scripts and are averaged ove
 
 Parameters count the generating model and the decoder of its audio codec; encoders used only to process the reference
 recording are not counted.<br>
-¹ Qwen3-TTS does not support Polish, so its WER is averaged over the other six languages.
+¹ Qwen3-TTS does not support Polish, so its WER is averaged over the other six languages. For Qwen3-TTS 0.6B, 4 of 600 takes
+didn't stop and were cut at 480 tokens (about 38 s); without them its WER is 1.78%.
 
 Generation speed, in × real time (seconds of audio per second of compute; higher is better), on MiniMax English
 sentences. Timing runs from the text and an already-encoded reference voice to the waveform, codec decoding included.
