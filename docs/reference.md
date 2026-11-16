@@ -11,8 +11,9 @@ Weights for the Python package (`TTS.from_pretrained(variant=...)`):
 | `int8a8` | int8, one scale per output channel | int8, one scale per token | 307 MB |
 | `int4` | int4, one scale per group of 32 inputs | full precision | 191 MB |
 
-In the quantized variants the decoder's linear layers hold the quantized weights, with fp16 scales. In automatic scoring
-of generated speech, `int8` and `int8a8` showed no measurable loss against `fp32`, and `int4` a small one.
+In the quantized variants the decoder's linear layers hold the quantized weights, with fp16 scales. On an internal test
+set, `int8` showed no quality loss against `fp32`, and `int4` none that we could measure. The benchmarks use full
+precision.
 
 [ExecuTorch](https://pytorch.org/executorch) programs for on-device inference, with the codec kept out of the program:
 

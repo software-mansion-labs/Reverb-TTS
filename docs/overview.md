@@ -25,7 +25,7 @@ similarity (SIM-o) come from OmniVoice's evaluation scripts and are averaged ove
 |:---|---:|---:|---:|
 | **Reverb** | **319M** | **1.35%** | 0.818 |
 | [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.64% | **0.835** |
-| [Audio8-TTS-Realistic](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) | 732M | 1.97% | 0.750 |
+| [Audio8-TTS-Realistic-Air](https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air) | 732M | 1.97% | 0.750 |
 | [Qwen3-TTS 0.6B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base) | 1,020M | 11.96%¹ | 0.781 |
 | [Qwen3-TTS 1.7B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) | 2,031M | 1.52%¹ | 0.781 |
 | [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.55% | 0.810 |
