@@ -126,7 +126,7 @@ tts = TTS.from_pretrained(sampler=SamplerConfig(steps=12))
 | `codebook_penalty` | 5.0 | makes codebook 0 tend to be decided before codebook 1 |
 | `position_temperature` | 5.0 | scales confidence against random noise; higher is more random |
 | `polish_bias` | 1.0 | attention bias towards the reference in the polish passes |
-| `polish_guidance` | 1.0 | weight of the second polish pass's change over the first (codebooks 4-7) |
+| `polish_guidance` | 0.5 | weight of the second polish pass's change over the first (codebooks 4-7) |
 
-The defaults are the tuned setup. On the MiniMax test set they scored 1.35% WER and 0.816 SIM-o, against 1.50% and
-0.817 with `remasking=False`.
+The defaults are the tuned setup. On the MiniMax test set they scored 1.35% WER and 0.818 SIM-o, against 1.50% and
+0.817 with `remasking=False`. A `polish_guidance` of 1.0 scored 1.34% and 0.816.

@@ -79,7 +79,7 @@ def test_sampler_overrides_reach_the_sampler(tts: TTS, voice: Voice, monkeypatch
 
     monkeypatch.setattr(tts_module, "sample", spy)
     tts.generate("Hello there.", voice, "en", seed=0, steps=3, remasking=False)
-    assert seen[-1].steps == 3 and not seen[-1].remasking and seen[-1].polish_guidance == 1.0
+    assert seen[-1].steps == 3 and not seen[-1].remasking and seen[-1].polish_guidance == SamplerConfig().polish_guidance
     with pytest.raises(TypeError):
         tts.generate("Hello there.", voice, "en", seed=0, not_a_setting=1)
 
