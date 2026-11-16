@@ -25,7 +25,7 @@ from reverb_tts.text import check_language, estimate_frames, prepare_text, split
 
 logger = logging.getLogger(__name__)
 
-REPOSITORY, REVISION = "software-mansion/Echo", "v1.0.0"  # the released weights
+REPOSITORY, REVISION = "software-mansion/Reverb-TTS", "v1.0.0"  # the released weights
 PRESETS = "software-mansion/Reverb-TTS"  # preset voices, as voices/<name>.json
 CODEC, CODEC_REVISION = "eustlb/higgs-audio-v2-tokenizer", "0e3a9177c2991016b8e5e17d23aa474ee665bef2"
 VARIANTS = ("fp32", "int8", "int8a8", "int4")
@@ -277,12 +277,14 @@ def _resolve(name_or_path: Union[str, Path], variant: str, revision: Optional[st
         raise ValueError(f"unknown variant {variant!r}, expected one of: {', '.join(VARIANTS)}")
     root = Path(name_or_path).expanduser()
     if not root.exists():
-        patterns = [f"model/{variant}/*", "model/tokenizer*", "model/chat_template.jinja"]
+        # model/safetensors/<variant>/ since the ExecuTorch programs joined the repo; model/<variant>/ before that
+        patterns = [f"model/safetensors/{variant}/*", f"model/{variant}/*", "model/tokenizer*", "model/chat_template.jinja"]
         root = Path(snapshot_download(str(name_or_path), revision=revision, token=token, allow_patterns=patterns))
-    weights = next((f for f in (root / "model" / variant, root / variant, root) if (f / "config.json").is_file()), None)
+    folders = (root / "model" / "safetensors" / variant, root / "model" / variant, root / variant, root)
+    weights = next((f for f in folders if (f / "config.json").is_file()), None)
     if weights is None:
         raise FileNotFoundError(f"no {variant} weights (config.json and model.safetensors) under {root}")
-    tokenizer = next((f for f in (weights, weights.parent, root / "model") if (f / "tokenizer.json").is_file()), None)
+    tokenizer = next((f for f in (weights, weights.parent, weights.parent.parent, root / "model") if (f / "tokenizer.json").is_file()), None)
     if tokenizer is None:
         raise FileNotFoundError(f"no tokenizer.json beside or above {weights}")
     return weights, tokenizer

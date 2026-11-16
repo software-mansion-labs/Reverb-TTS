@@ -111,3 +111,11 @@ def test_resolve_finds_a_release_layout(tmp_path: Path) -> None:
         _resolve(tmp_path, "int4", None, None)
     with pytest.raises(ValueError, match="variant"):
         _resolve(tmp_path, "int2", None, None)
+
+
+def test_resolve_finds_the_safetensors_layout(tmp_path: Path) -> None:
+    weights = tmp_path / "model" / "safetensors" / "int4"
+    weights.mkdir(parents=True)
+    (weights / "config.json").write_text(json.dumps({}))
+    (tmp_path / "model" / "tokenizer.json").write_text("{}")
+    assert _resolve(tmp_path, "int4", None, None) == (weights, tmp_path / "model")
