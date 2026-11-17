@@ -4,11 +4,12 @@
 
 ### safetensors
 
-PyTorch weights for the `reverb-tts` package, in four variants (`TTS.from_pretrained(variant=...)`):
+PyTorch weights for the `reverb-tts` package, in five variants (`TTS.from_pretrained(variant=...)`):
 
 | Variant | Weights | Activations | Download |
 |---|---|---|---|
 | `fp32` | fp32 | full precision | 1.19 GB |
+| `fp16` | fp16 | full precision | 594 MB |
 | `int8` (default) | int8, one scale per output channel | full precision | 307 MB |
 | `int8a8` | int8, one scale per output channel | int8, one scale per token | 307 MB |
 | `int4` | int4, one scale per group of 32 inputs | full precision | 191 MB |
@@ -54,7 +55,7 @@ The weights on Hugging Face, [software-mansion/Reverb-TTS](https://huggingface.c
 ```
 model/
   tokenizer.json, tokenizer_config.json, chat_template.jinja
-  safetensors/<variant>/       config.json, model.safetensors: fp32, int8, int8a8, int4
+  safetensors/<variant>/       config.json, model.safetensors: fp32, fp16, int8, int8a8, int4
   executorch/mlx/<precision>/  reverb_mlx_<precision>.pte: fp16, int8, int4
   executorch/vulkan/int4/      reverb_vulkan_int4.pte
   executorch/qnn/fp16/         reverb_qnn_fp16_sm8650.pte
