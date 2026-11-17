@@ -1,4 +1,7 @@
-![Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 164.9x faster than real time on an RTX 5090 at batch 32, 1.35% word error rate on MiniMax, 297M parameters. Software Mansion AI Labs.](docs/assets/header.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header_dark.png">
+  <img src="docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 164.9x faster than real time on an RTX 5090 at batch 32, 20.6x on an iPhone 17 and 12.3x on an M4 Pro; 1.35% word error rate on MiniMax. Software Mansion AI Labs.">
+</picture>
 
 # Reverb-TTS
 
@@ -9,24 +12,25 @@
   <a href="https://discord.swmansion.com"><img src="https://img.shields.io/badge/Discord-join%20us-3a3cd6?style=for-the-badge&logo=discord&logoColor=white" alt="Join the Software Mansion Discord"></a>
 </p>
 
-**Reverb** is a voice-cloning text-to-speech model: give it a few seconds of someone speaking and the transcript, and
-it speaks any text in that voice. This repository holds the Python package that runs it.
+**Reverb** is a **text-to-speech** model designed for high-quality **voice cloning**: give it a few seconds of
+someone speaking and the transcript, and it speaks any text in that voice. This repository holds the Python package
+that runs it.
 
 - **Zero-shot cloning** from 3 to 10 seconds of speech and its transcript, with no fine-tuning.
 - **7 languages:** English, German, French, Spanish, Italian, Polish, and Portuguese. A voice can speak any of them.
 - **1.35% word error rate** on the MiniMax test set, the lowest of the six open-weight models we compared.
-- **297M parameters**, against OmniVoice's 613M.
-- **164.9× real time** on an RTX 5090 at batch 32, **21.6×** on an Apple M4 Pro at batch 1.
+- **297M parameters**, plus a 22M-parameter codec decoder.
+- **164.9× real time** on an RTX 5090 at batch 32, **over 20×** on an Apple M4 Pro and an iPhone 17 at batch 1.
 - **Weights:** fp32, int8, int8a8, and int4 safetensors, and ExecuTorch programs for MLX, Vulkan, and QNN.
 
 ## Install
 
 ```bash
-pip install git+https://github.com/software-mansion-labs/Reverb-TTS
+pip install reverb-tts
 ```
 
 Python 3.10 or later. The weights download from [Hugging Face](https://huggingface.co/software-mansion/Reverb-TTS) on
-first use. They're gated: request access on the model page, then log in with `hf auth login` or set `HF_TOKEN`.
+first use.
 
 ## Quick start
 
@@ -50,34 +54,31 @@ audio = tts.generate("Dzień dobry! Mówię po polsku.", voice, language="pl")
 `TTS.from_pretrained` picks CUDA, Apple's MPS, or the CPU, in that order. Numbers, dates, money, and abbreviations are
 read out as words, and long texts are split at sentence ends, so you can pass text as you'd write it.
 
+### In the browser
+
+[ruNNtime](https://docs.swmansion.com/runntime/zoo/getting-started/) runs Reverb on the GPU in the browser through
+WebGPU. Install it with `npm install runntime` and follow its getting-started guide.
+
 ## Documentation
 
 - [Overview](docs/overview.md): what the model is, how it was made, and how it scores.
 - [Usage](docs/usage.md): every use case, from the quick start to sampler settings.
-- [Reference](docs/reference.md): model variants, on-device programs, and the repositories' layout.
+- [Reference](docs/reference.md): the safetensors variants, the ExecuTorch programs, and the repositories' layout.
 
 ## Benchmarks
 
 On the [MiniMax Multilingual Test Set](https://huggingface.co/datasets/k2-fsa/TTS_eval_datasets), across Reverb's
 seven languages:
 
-| Model | Parameters (model + codec decoder) | WER ↓ | SIM-o ↑ | RTX 5090, × real time ↑ |
+| Model | Parameters: model + codec decoder | WER ↓ | SIM-o ↑ | RTX 5090, × real time ↑ |
 |:---|---:|---:|---:|---:|
-| **Reverb** | **319M** | **1.35%** | 0.818 | **164.9×** |
-| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.64% | **0.835** | 13.2× |
-| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.55% | 0.810 | 3.0×¹ |
-| [Qwen3-TTS 1.7B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) | 2,031M | 1.52%² | 0.781 | 4.0× |
+| **Reverb** | **297M + 22M** | **1.35%** | 0.818 | **164.9×** |
+| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 612M + 22M | 1.64% | **0.835** | 13.2× |
+| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,290M + 46M | 1.55% | 0.810 | 3.0×¹ |
+| [Qwen3-TTS 1.7B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) | 1,929M + 102M | 1.52%² | 0.781 | 4.0× |
 
 ¹ No batched generation: sentences run one at a time. ² Polish excluded: Qwen3-TTS doesn't support it.<br>
-The full tables and the method are in the [overview](docs/overview.md#results).
-
-## Develop
-
-```bash
-uv venv && uv pip install -e ".[test]" && .venv/bin/pytest
-```
-
-The tests run on a small random model, so they need no download.
+The full tables, the Apple M4 Pro and iPhone 17 speeds, and the method are in the [overview](docs/overview.md#results).
 
 ## Use it responsibly
 

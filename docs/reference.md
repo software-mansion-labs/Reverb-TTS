@@ -2,7 +2,9 @@
 
 ## Model variants
 
-Weights for the Python package (`TTS.from_pretrained(variant=...)`):
+### safetensors
+
+PyTorch weights for the `reverb-tts` package, in four variants (`TTS.from_pretrained(variant=...)`):
 
 | Variant | Weights | Activations | Download |
 |---|---|---|---|
@@ -15,6 +17,8 @@ In the quantized variants the decoder's linear layers hold the quantized weights
 set, `int8` showed no quality loss against `fp32`, and `int4` none that we could measure. The benchmarks use full
 precision.
 
+### ExecuTorch
+
 [ExecuTorch](https://pytorch.org/executorch) programs for on-device inference, with the codec kept out of the program:
 
 | Program | Hardware | Size |
@@ -24,6 +28,11 @@ precision.
 | MLX int4 | Apple GPUs | 232 MB |
 | Vulkan int4 | Android GPUs | 233 MB |
 | QNN fp16 | Qualcomm NPUs (Snapdragon 8 Gen 3, SM8650) | 614 MB |
+
+### In the browser
+
+[ruNNtime](https://docs.swmansion.com/runntime/zoo/getting-started/) runs Reverb on the GPU in the browser through
+WebGPU, from its own copy of the weights.
 
 ## Repository layout
 
