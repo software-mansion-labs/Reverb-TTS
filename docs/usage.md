@@ -96,12 +96,12 @@ for text that is already written out, in `generate` or in `voice`.
 ```python
 import torch
 
-tts = TTS.from_pretrained(variant="int4")                  # fp32, int8 (default), int8a8 or int4
+tts = TTS.from_pretrained(variant="int4")                  # fp32, fp16, int8 (default), int8a8 or int4
 tts = TTS.from_pretrained(device="cpu", dtype=torch.float32)
 tts = TTS.from_pretrained("path/to/weights")                # a local folder
 ```
 
-- **variant:** quantized weights download smaller and are expanded to `dtype` on load, so every variant runs at the same
+- **variant:** every variant is converted to `dtype` on load, so the smaller ones download faster but run at the same
   speed. See [Reference](reference.md#model-variants).
 - **device:** the first available of CUDA, MPS and CPU by default.
 - **dtype:** bfloat16 on CUDA (float16 without bf16 support), float16 on MPS, float32 on CPU by default.

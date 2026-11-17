@@ -18,6 +18,14 @@ def test_full_precision_checkpoint_loads_with_centred_heads(network: Network, tm
     assert torch.allclose(original, centred, atol=1e-4)
 
 
+def test_half_precision_checkpoint_loads_as_its_rounded_weights(network: Network, tmp_path: Path) -> None:
+    half = {key: value.half() for key, value in network.state_dict().items()}
+    loaded = Network.load(write_checkpoint(tmp_path, network.half()))
+    name = "llm.layers.0.self_attn.q_proj.weight"
+    assert loaded.state_dict()[name].dtype == torch.float32
+    assert torch.equal(loaded.state_dict()[name], half[name].float())
+
+
 @pytest.mark.parametrize("bits, group", [(8, None), (4, 8)])
 def test_quantized_checkpoints_are_expanded_on_load(network: Network, tmp_path: Path, bits: int, group: int) -> None:
     quantization = {"bits": bits, "group_size": group, "activations": None, "rotation": None}
