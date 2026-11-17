@@ -44,7 +44,7 @@ The weights on Hugging Face, [software-mansion/Reverb-TTS](https://huggingface.c
 model/
   tokenizer.json, tokenizer_config.json, chat_template.jinja
   safetensors/<variant>/       config.json, model.safetensors: fp32, int8, int8a8, int4
-  executorch/mlx/<precision>/  echo_mlx_<precision>.pte: fp16, int8, int4
+  executorch/mlx/<precision>/  reverb_mlx_<precision>.pte: fp16, int8, int4
 voices/                        preset voices: <name>.json
 ```
 

@@ -23,10 +23,13 @@ sf.write("output.wav", audio, tts.sample_rate)
 Preset voices need no recording:
 
 ```python
-tts.preset_voices()                       # ['angry_male', 'sensual_female', 'standard_male']
-voice = tts.preset_voice("standard_male")
+tts.preset_voices()                       # ['de_female_standard', 'de_male_standard', ..., 'pt_male_standard']
+voice = tts.preset_voice("en_male_narrator_1")
 audio = tts.generate("Hello! This is a preset voice speaking.", voice, language="en")
 ```
+
+Each name starts with the voice's language: `de`, `en`, `es`, `fr`, `it`, `pl` or `pt`. A voice can speak any of the
+seven languages, though it sounds most natural in its own.
 
 Presets come from the `voices/` folder of
 [software-mansion/Reverb-TTS](https://huggingface.co/software-mansion/Reverb-TTS), or of the local folder the model was
