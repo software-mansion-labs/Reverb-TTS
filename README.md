@@ -1,13 +1,13 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/header_dark.png">
-  <img src="docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 164.9x faster than real time on an RTX 5090 at batch 32, 20.6x on an iPhone 17 and 12.3x on an M4 Pro; 1.35% word error rate on MiniMax. Software Mansion AI Labs.">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header_dark.png">
+  <img src="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 164.9x faster than real time on an RTX 5090 at batch 32, 20.6x on an iPhone 17 and 12.3x on an M4 Pro; 1.35% word error rate on MiniMax. Software Mansion AI Labs.">
 </picture>
 
 # Reverb-TTS
 
 <p align="center">
   <a href="https://huggingface.co/software-mansion/Reverb-TTS"><img src="https://img.shields.io/badge/%F0%9F%A4%97-weights-3a3cd6?style=for-the-badge" alt="Weights on Hugging Face"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/code-Apache%202.0-3a3cd6?style=for-the-badge" alt="Code license: Apache 2.0"></a>
+  <a href="https://github.com/software-mansion-labs/Reverb-TTS/blob/main/LICENSE"><img src="https://img.shields.io/badge/code-Apache%202.0-3a3cd6?style=for-the-badge" alt="Code license: Apache 2.0"></a>
   <a href="https://creativecommons.org/licenses/by-nc/4.0/"><img src="https://img.shields.io/badge/weights-CC%20BY--NC%204.0-3a3cd6?style=for-the-badge" alt="Weights license: CC BY-NC 4.0"></a>
   <a href="https://discord.swmansion.com"><img src="https://img.shields.io/badge/Discord-join%20us-3a3cd6?style=for-the-badge&logo=discord&logoColor=white" alt="Join the Software Mansion Discord"></a>
 </p>
@@ -61,9 +61,9 @@ WebGPU. Install it with `npm install runntime` and follow its getting-started gu
 
 ## Documentation
 
-- [Overview](docs/overview.md): what the model is, how it was made, and how it scores.
-- [Usage](docs/usage.md): every use case, from the quick start to sampler settings.
-- [Reference](docs/reference.md): the safetensors variants, the ExecuTorch programs, and the repositories' layout.
+- [Overview](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/docs/overview.md): what the model is, how it was made, and how it scores.
+- [Usage](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/docs/usage.md): every use case, from the quick start to sampler settings.
+- [Reference](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/docs/reference.md): the safetensors variants, the ExecuTorch programs, and the repositories' layout.
 
 ## Benchmarks
 
@@ -78,7 +78,7 @@ seven languages:
 | [Qwen3-TTS 1.7B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) | 1,929M + 102M | 1.52%² | 0.781 | 4.0× |
 
 ¹ No batched generation: sentences run one at a time. ² Polish excluded: Qwen3-TTS doesn't support it.<br>
-The full tables, the Apple M4 Pro and iPhone 17 speeds, and the method are in the [overview](docs/overview.md#results).
+The full tables, the Apple M4 Pro and iPhone 17 speeds, and the method are in the [overview](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/docs/overview.md#results).
 
 ## Use it responsibly
 
@@ -87,7 +87,7 @@ generated speech to deceive, defraud, or harass. Tell your listeners when they h
 
 ## License and acknowledgments
 
-- **Code:** Apache 2.0; see [LICENSE](LICENSE).
+- **Code:** Apache 2.0; see [LICENSE](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/LICENSE).
 - **Model weights:** [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/), for non-commercial use with
   attribution.
 
