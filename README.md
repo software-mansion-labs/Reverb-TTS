@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header_dark.png">
-  <img src="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 164.9x faster than real time on an RTX 5090 at batch 32, 20.6x on an iPhone 17 and 12.3x on an M4 Pro; 1.35% word error rate on MiniMax. Software Mansion AI Labs.">
+  <img src="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 164.9x faster than real time on an RTX 5090 at batch 32, 21.6x on an M4 Pro and 20.6x on an iPhone 17; 1.35% word error rate on MiniMax. Software Mansion AI Labs.">
 </picture>
 
 # Reverb-TTS
