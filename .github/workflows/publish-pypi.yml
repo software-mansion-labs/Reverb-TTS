@@ -21,6 +21,8 @@ jobs:
   build:
     name: Build and test
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -29,6 +31,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Read the version
+        id: version
+        run: echo "version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')" >> "$GITHUB_OUTPUT"
 
       - name: Build the wheel and the sdist
         run: pipx run build
@@ -60,13 +66,30 @@ jobs:
     environment: pypi
     permissions:
       id-token: write # Mints the OIDC token for trusted publishing and attestations
+      contents: write # Creates the tag and the GitHub release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: v${{ needs.build.outputs.version }}
     steps:
+      # Stops before publishing, so a version is never on PyPI without its tag and release
+      - name: Check the tag is new
+        run: |
+          if gh api "repos/$GH_REPO/git/ref/tags/$TAG" --silent 2>/dev/null; then
+            echo "::error::$TAG already exists: raise the version in pyproject.toml"
+            exit 1
+          fi
+
       - name: Download the wheel and the sdist
         uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist
 
-      # The version is project.version in pyproject.toml
+      # The version is project.version in pyproject.toml; the tag is v<version>
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
+
+      # Tags the commit the workflow ran on, with notes generated from the merged pull requests and the files attached
+      - name: Create the tag and the GitHub release
+        run: gh release create "$TAG" dist/*.whl dist/*.tar.gz --target "$GITHUB_SHA" --title "$TAG" --generate-notes
