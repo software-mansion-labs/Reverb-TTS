@@ -101,10 +101,15 @@ codec, and [Verbalis](https://github.com/software-mansion-labs/Verbalis) prepare
 [Join the Software Mansion Community Discord](https://discord.swmansion.com) to chat about Reverb or other Software
 Mansion libraries.
 
-## Reverb is created by Software Mansion
+## Reverb is created by Software Mansion AI Labs
 
-Since 2012, [Software Mansion](https://swmansion.com) has been a software agency with experience in building web and
-mobile apps. We are Core React Native Contributors and experts in dealing with all kinds of React Native issues. We can
-help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=reverb\&utm_medium=readme).
+<a href="https://ai.swmansion.com/?utm_source=reverb&utm_medium=readme">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/swm_ai_labs_dark.svg">
+    <img src="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/swm_ai_labs.svg" alt="Software Mansion AI Labs" width="122" height="80" align="left">
+  </picture>
+</a>
 
-[![swm](https://logo.swmansion.com/logo?color=white\&variant=desktop\&width=150\&tag=reverb-github "Software Mansion")](https://swmansion.com)
+We're an end-to-end AI development lab focused on local and hybrid AI. We build and fine-tune models, deploy them
+anywhere and turn them into agents that solve real business problems.
+[Hire us](https://ai.swmansion.com/?utm_source=reverb&utm_medium=readme#contact).
