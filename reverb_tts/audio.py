@@ -18,6 +18,11 @@ RESAMPLE = {"lowpass_filter_width": 64, "rolloff": 0.9475937167399596, "resampli
 AudioInput = Union[str, Path, np.ndarray, torch.Tensor]
 
 SILENCE_DB = -50.0  # a 10 ms window quieter than this (dBFS) is silence
+# A reference quieter than QUIET_DB (RMS, dBFS) is raised to LEVEL_DB before it is encoded: its takes come out as quiet
+# as it is, and trim_silence would then take their soft speech for silence and cut words away.
+QUIET_DB = -40.0
+LEVEL_DB = -20.0
+PEAK = 0.99  # the raise stops short of taking the loudest sample past this: the codec was trained on audio within ±1
 
 
 def load_audio(audio: AudioInput, sample_rate: Optional[int], target_rate: int) -> torch.Tensor:
@@ -40,6 +45,19 @@ def load_audio(audio: AudioInput, sample_rate: Optional[int], target_rate: int) 
     if sample_rate != target_rate:
         wav = torchaudio.functional.resample(wav, sample_rate, target_rate, **RESAMPLE)
     return wav
+
+
+def raise_quiet(audio: torch.Tensor) -> torch.Tensor:
+    """
+    The recording raised to LEVEL_DB if it is quieter than QUIET_DB (RMS), otherwise as it is. A loud click in a quiet
+    recording limits the raise, so its peak stays at PEAK.
+    """
+
+    rms = float(audio.square().mean().sqrt()) if audio.numel() else 0.0
+    if rms == 0.0 or 20 * np.log10(rms) >= QUIET_DB:
+        return audio
+
+    return audio * min(10 ** (LEVEL_DB / 20) / rms, PEAK / float(audio.abs().max()))
 
 
 def trim_silence(audio: np.ndarray, sample_rate: int, keep: float = 0.1) -> np.ndarray:

@@ -18,7 +18,7 @@ import torch
 from huggingface_hub import hf_hub_download, list_repo_files, snapshot_download
 from transformers import HiggsAudioV2TokenizerModel, Qwen2Tokenizer
 
-from reverb_tts.audio import AudioInput, load_audio, speech_length, trim_silence
+from reverb_tts.audio import AudioInput, load_audio, raise_quiet, speech_length, trim_silence
 from reverb_tts.model import CODEBOOKS, MASK, Network
 from reverb_tts.sampler import Batch, Prompt, SamplerConfig, sample
 from reverb_tts.text import check_language, estimate_frames, prepare_text, split_text
@@ -183,7 +183,7 @@ class TTS:
         """
 
         check_language(language)
-        wav = load_audio(audio, sample_rate, self.sample_rate)
+        wav = raise_quiet(load_audio(audio, sample_rate, self.sample_rate))
         # Whole codec frames, as the training references were: otherwise the codes can come out misaligned.
         wav = torch.nn.functional.pad(wav, (0, -wav.numel() % self.codec.config.hop_length))
         codes = self.codec.encode(wav[None, None].to(self.device)).audio_codes[0].long().cpu()
