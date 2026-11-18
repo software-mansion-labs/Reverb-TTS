@@ -43,7 +43,7 @@ def test_a_voice_measures_its_speech_and_keeps_the_recording_whole(tts: TTS) -> 
     silence = np.zeros(RATE, np.float32)
     voice = tts.voice(np.concatenate([silence, sound, silence, sound, silence]), "Hello there.", "en", sample_rate=RATE)
     assert voice.codes.size(1) == 125  # 5 s, nothing cut
-    assert voice.speech_frames == pytest.approx(25 * 2.5, abs=1)  # 2 s of sound, a 0.2 s pause, 0.1 + 0.2 s of edges
+    assert voice.speech_frames == pytest.approx(25 * 2.8, abs=1)  # 2 s of sound, a 0.5 s pause, 0.1 + 0.2 s of edges
     assert voice.pace_frames == voice.speech_frames
 
 

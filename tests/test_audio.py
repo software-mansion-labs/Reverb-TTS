@@ -40,10 +40,11 @@ def quiet(seconds: float) -> np.ndarray:
 
 
 def test_speech_length_keeps_short_edges_and_caps_pauses() -> None:
-    # 1 s of edge silence on each side, a 1.5 s and a 0.1 s pause between 1 s sounds.
-    audio = np.concatenate([quiet(1), tone(1), quiet(1.5), tone(1), quiet(0.1), tone(1), quiet(1)])
-    # 3 s of sound, the long pause counted as 0.2 s, the short one whole, and 0.1 s + 0.2 s of the edges.
-    assert speech_length(audio, RATE) == pytest.approx(3 + 0.2 + 0.1 + 0.1 + 0.2, abs=0.02)
+    # 1 s of edge silence on each side, a 1.5 s and a 0.3 s pause between 1 s sounds.
+    audio = np.concatenate([quiet(1), tone(1), quiet(1.5), tone(1), quiet(0.3), tone(1), quiet(1)])
+    # 3 s of sound, the long pause counted as 0.5 s, the sentence-length one whole, and 0.1 s + 0.2 s of the edges.
+    assert speech_length(audio, RATE) == pytest.approx(3 + 0.5 + 0.3 + 0.1 + 0.2, abs=0.02)
+    assert speech_length(audio, RATE, max_pause=0.2) == pytest.approx(3 + 0.2 + 0.2 + 0.1 + 0.2, abs=0.02)
 
 
 def test_speech_length_of_clean_speech_is_its_length() -> None:
@@ -53,7 +54,7 @@ def test_speech_length_of_clean_speech_is_its_length() -> None:
 def test_speech_length_levels_a_quiet_recording_first() -> None:
     # The whole recording sits under -50 dBFS, yet its sounds are told from its silence.
     audio = np.concatenate([tone(1, 1e-4), quiet(2), tone(1, 1e-4)])
-    assert speech_length(audio, RATE) == pytest.approx(2.2, abs=0.02)
+    assert speech_length(audio, RATE) == pytest.approx(2.5, abs=0.02)
 
 
 def test_speech_length_counts_a_silent_or_tiny_recording_whole() -> None:

@@ -67,8 +67,8 @@ takes = [tts.generate(text, voice, language="en", seed=s) for s in range(4)]  # 
 ## Control the length
 
 The length is estimated from the text and the reference's speaking rate. The rate counts only the time the
-reference spends speaking: its silent edges and any pause over 0.2 s are left out, so a recording with long pauses
-doesn't make the takes slow. The recording itself is used whole.
+reference spends speaking: its silent edges are left out and any pause over 0.5 s counts as 0.5 s, so a recording
+with long pauses doesn't make the takes slow. The recording itself is used whole.
 `pace="recording"` estimates from the whole recording instead, pauses included, as earlier versions did.
 
 ```python

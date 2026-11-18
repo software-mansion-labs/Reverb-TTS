@@ -63,7 +63,7 @@ def trim_silence(audio: np.ndarray, sample_rate: int, keep: float = 0.1) -> np.n
     return audio[max(sounds[0][0] - margin, 0) * window: min(sounds[-1][-1] + 1 + margin, count) * window]
 
 
-def speech_length(audio: np.ndarray, sample_rate: int, max_pause: float = 0.2, lead: float = 0.1,
+def speech_length(audio: np.ndarray, sample_rate: int, max_pause: float = 0.5, lead: float = 0.1,
                   trail: float = 0.2) -> float:
     """
     Seconds of a reference recording that set the speaker's pace: the recording without its silent edges (keeping

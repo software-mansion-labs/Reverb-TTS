@@ -218,7 +218,7 @@ class TTS:
         - seed: the take's seed; consecutive seeds go to the pieces of a list or a long text. None draws one.
         - speed: a factor on the estimated length. duration: the length in seconds, in place of the estimate.
         - pace: the reference length the estimate follows. "speech" counts only the time the reference spends speaking
-          (`Voice.speech_frames`: no silent edges, pauses capped at 0.2 s); "recording" counts the whole recording.
+          (`Voice.speech_frames`: no silent edges, pauses capped at 0.5 s); "recording" counts the whole recording.
         - prepare: verbalize the text first (turn off for text that already is).
         - trim: cut the take's silent edges.
         - sampler, overrides: sampler settings for this call, e.g. steps=12 or remasking=False.
