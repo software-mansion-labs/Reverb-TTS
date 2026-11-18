@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from reverb_tts.audio import LEVEL_DB, load_audio, raise_quiet, speech_length, trim_silence
+from reverb_tts.audio import LEVEL_DB, PEAK, load_audio, raise_quiet, speech_length, trim_silence
 
 RATE = 24000
 
@@ -70,3 +70,12 @@ def test_raise_quiet_levels_only_a_quiet_recording() -> None:
     typical = tone * 10 ** (-30 / 20)
     assert torch.equal(raise_quiet(typical), typical)
     assert torch.equal(raise_quiet(torch.zeros(RATE)), torch.zeros(RATE))
+
+
+def test_raise_quiet_keeps_a_loud_click_under_the_peak() -> None:
+    # A -60 dBFS tone with one click at 0.5: raising it to LEVEL_DB would take the click to ~50, so the peak limits it.
+    tone = torch.sin(2 * torch.pi * 220 * torch.arange(RATE) / RATE) * np.sqrt(2) * 10 ** (-60 / 20)
+    tone[RATE // 2] = 0.5
+    raised = raise_quiet(tone)
+    assert float(raised.abs().max()) == pytest.approx(PEAK, abs=1e-6)
+    assert float(raised.square().mean().sqrt()) > float(tone.square().mean().sqrt())  # still raised, as far as the peak allows
