@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from reverb_tts.audio import load_audio, speech_length, trim_silence
+from reverb_tts.audio import LEVEL_DB, load_audio, raise_quiet, speech_length, trim_silence
 
 RATE = 24000
 
@@ -60,3 +60,13 @@ def test_speech_length_levels_a_quiet_recording_first() -> None:
 def test_speech_length_counts_a_silent_or_tiny_recording_whole() -> None:
     assert speech_length(quiet(2), RATE) == 2
     assert speech_length(np.zeros(10, np.float32), RATE) == 10 / RATE
+
+
+def test_raise_quiet_levels_only_a_quiet_recording() -> None:
+    tone = torch.sin(2 * torch.pi * 220 * torch.arange(RATE) / RATE) * np.sqrt(2)  # RMS 1
+    def db(x: torch.Tensor) -> float:
+        return 20 * float(torch.log10(x.square().mean().sqrt()))
+    assert db(raise_quiet(tone * 10 ** (-60 / 20))) == pytest.approx(LEVEL_DB, abs=0.01)
+    typical = tone * 10 ** (-30 / 20)
+    assert torch.equal(raise_quiet(typical), typical)
+    assert torch.equal(raise_quiet(torch.zeros(RATE)), torch.zeros(RATE))
