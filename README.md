@@ -47,7 +47,7 @@ sf.write("output.wav", audio, tts.sample_rate)
 No recording at hand? Use a preset voice:
 
 ```python
-voice = tts.preset_voice("standard_male")  # tts.preset_voices() lists them all
+voice = tts.preset_voice("pl_male_standard")  # tts.preset_voices() lists them all
 audio = tts.generate("Dzień dobry! Mówię po polsku.", voice, language="pl")
 ```
 

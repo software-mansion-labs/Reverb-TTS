@@ -1,0 +1,95 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Dry run, which builds and tests the package but publishes nothing.
+        type: boolean
+        default: true
+  # Builds and tests the package, without publishing, when a change can affect it
+  pull_request:
+    paths:
+      - reverb_tts/**
+      - tests/**
+      - pyproject.toml
+      - README.md # the PyPI page
+      - LICENSE
+      - .github/workflows/publish-pypi.yml
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read the version
+        id: version
+        run: echo "version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Build the wheel and the sdist
+        run: pipx run build
+
+      - name: Check the package metadata
+        run: pipx run twine check --strict dist/*
+
+      # Tests the built wheel, not the checkout: pytest without -m doesn't put the repo root on the import path.
+      # The tests use a small random model, so they need no weights and no token. CPU torch keeps the install small.
+      - name: Test the wheel
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          /tmp/venv/bin/pip install "$(ls dist/*.whl)[test]"
+          /tmp/venv/bin/pytest
+
+      - name: Upload the wheel and the sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && !inputs.dry-run
+    runs-on: ubuntu-latest
+    # The environment that PyPI's trusted publisher names; add required reviewers to it to approve each release
+    environment: pypi
+    permissions:
+      id-token: write # Mints the OIDC token for trusted publishing and attestations
+      contents: write # Creates the tag and the GitHub release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: v${{ needs.build.outputs.version }}
+    steps:
+      # Stops before publishing, so a version is never on PyPI without its tag and release
+      - name: Check the tag is new
+        run: |
+          if gh api "repos/$GH_REPO/git/ref/tags/$TAG" --silent 2>/dev/null; then
+            echo "::error::$TAG already exists: raise the version in pyproject.toml"
+            exit 1
+          fi
+
+      - name: Download the wheel and the sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      # The version is project.version in pyproject.toml; the tag is v<version>
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # Tags the commit the workflow ran on, with notes generated from the merged pull requests and the files attached
+      - name: Create the tag and the GitHub release
+        run: gh release create "$TAG" dist/*.whl dist/*.tar.gz --target "$GITHUB_SHA" --title "$TAG" --generate-notes

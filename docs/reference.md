@@ -28,7 +28,7 @@ precision.
 | MLX int8 | Apple GPUs | 352 MB |
 | MLX int4 | Apple GPUs | 232 MB |
 | Vulkan int4 | Android GPUs | 233 MB |
-| QNN fp16 | Qualcomm NPUs (Snapdragon 8 Gen 3, SM8650) | 614 MB |
+| QNN int4 | Qualcomm NPUs, one program per chip: Snapdragon 8 Gen 1 (SM8450, v69), 8 Gen 2 (SM8550, v73), 8 Gen 3 (SM8650, v75), 8 Elite (SM8750, v79), 8 Elite Gen 5 (SM8850, v81) | 232–237 MB each |
 
 ### In the browser
 
@@ -58,7 +58,8 @@ model/
   safetensors/<variant>/       config.json, model.safetensors: fp32, fp16, int8, int8a8, int4
   executorch/mlx/<precision>/  reverb_mlx_<precision>.pte: fp16, int8, int4
   executorch/vulkan/int4/      reverb_vulkan_int4.pte
-  executorch/qnn/fp16/         reverb_qnn_fp16_sm8650.pte
+  executorch/qnn/int4/         reverb_qnn_int4_<hexagon>.pte: v69, v73, v75, v79, v81
+  runntime/<precision>/        model.safetensors for ruNNtime: int8, int4
 voices/                        preset voices: <name>.json
 assets/                        images for the model card
 ```
