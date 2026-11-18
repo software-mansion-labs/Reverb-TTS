@@ -11,14 +11,14 @@ import logging
 import random
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import Any, List, Literal, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 import torch
 from huggingface_hub import hf_hub_download, list_repo_files, snapshot_download
 from transformers import HiggsAudioV2TokenizerModel, Qwen2Tokenizer
 
-from reverb_tts.audio import AudioInput, load_audio, trim_silence
+from reverb_tts.audio import AudioInput, load_audio, speech_length, trim_silence
 from reverb_tts.model import CODEBOOKS, MASK, Network
 from reverb_tts.sampler import Batch, Prompt, SamplerConfig, sample
 from reverb_tts.text import check_language, estimate_frames, prepare_text, split_text
@@ -33,6 +33,7 @@ FRAME_RATE = 25              # codec frames per second
 LONGEST, PIECE = 30.0, 15.0  # seconds: a text estimated longer than LONGEST is spoken in pieces of about PIECE
 END_CUT = 0.2                # seconds cut from every take's end, where the codec can leave a short burst of noise
 LONG_REFERENCE = 15.0        # seconds: references longer than this are known to hurt
+PACES = ("speech", "recording")  # what the length estimate takes as the reference's length: see generate()
 
 T = TypeVar("T")
 
@@ -41,38 +42,56 @@ T = TypeVar("T")
 class Voice:
     """
     A reference voice: the recording's codec codes [8, frames] and its transcript, prepared for the model.
+    `speech_frames` is how many of those frames the speaker spends speaking (see `audio.speech_length`).
     """
 
     codes: torch.Tensor
     text: str
     language: str
+    speech_frames: Optional[int] = None
 
     @property
     def duration(self) -> float:
         return self.codes.size(1) / FRAME_RATE
+
+    @property
+    def pace_frames(self) -> int:
+        """
+        The reference length the target's length is estimated from: the speech frames, at most every frame.
+        """
+
+        frames = self.codes.size(1)
+        return frames if self.speech_frames is None else max(1, min(self.speech_frames, frames))
 
     def save(self, path: Union[str, Path]) -> None:
         """
         Writes the voice to an .npz file, so the recording needn't be encoded again.
         """
 
-        np.savez(path, codes=self.codes.numpy().astype(np.int16), text=self.text, language=self.language)
+        extra = {} if self.speech_frames is None else {"speech_frames": self.speech_frames}
+        np.savez(path, codes=self.codes.numpy().astype(np.int16), text=self.text, language=self.language, **extra)
 
     @classmethod
     def load(cls, path: Union[str, Path]) -> "Voice":
         """
         Reads a voice from an .npz file written by `save`, or from a preset .json file: {codes, transcript, language},
-        the codes as 8 x frames integers, row-major, and the transcript already prepared.
+        the codes as 8 x frames integers, row-major, and the transcript already prepared, with an optional
+        speech_frames.
         """
 
         if Path(path).suffix != ".json":
             data = np.load(path)
-            return cls(torch.from_numpy(data["codes"].astype(np.int64)), str(data["text"]), str(data["language"]))
+            speech = int(data["speech_frames"]) if "speech_frames" in data.files else None
+            return cls(torch.from_numpy(data["codes"].astype(np.int64)), str(data["text"]), str(data["language"]),
+                       speech)
         data = json.loads(Path(path).read_text())
         codes = torch.tensor(data["codes"], dtype=torch.long)
         if codes.numel() == 0 or codes.numel() % CODEBOOKS or not 0 <= int(codes.min()) <= int(codes.max()) < MASK:
             raise ValueError(f"{path}: expected codes as {CODEBOOKS} x frames integers below {MASK}")
-        return cls(codes.view(CODEBOOKS, -1), data["transcript"], check_language(data["language"]))
+        speech = data.get("speech_frames")
+        if speech is not None and (not isinstance(speech, int) or speech < 1):
+            raise ValueError(f"{path}: expected speech_frames as a positive integer")
+        return cls(codes.view(CODEBOOKS, -1), data["transcript"], check_language(data["language"]), speech)
 
 
 class TTS:
@@ -171,7 +190,9 @@ class TTS:
         if codes.size(1) / FRAME_RATE > LONG_REFERENCE:
             logger.warning("the reference is %.1f s long; references over %.0f s tend to make worse takes",
                            codes.size(1) / FRAME_RATE, LONG_REFERENCE)
-        return Voice(codes, prepare_text(text, language) if prepare else text, language)
+        # The recording stays whole; only the speaking time is measured, for the length estimate.
+        speech = round(speech_length(wav.numpy(), self.sample_rate) * FRAME_RATE)
+        return Voice(codes, prepare_text(text, language) if prepare else text, language, speech)
 
     @torch.inference_mode()
     def generate(
@@ -183,6 +204,7 @@ class TTS:
         seed: Optional[int] = None,
         speed: float = 1.0,
         duration: Optional[float] = None,
+        pace: Literal["speech", "recording"] = "speech",
         prepare: bool = True,
         trim: bool = True,
         sampler: Optional[SamplerConfig] = None,
@@ -195,6 +217,8 @@ class TTS:
         - language: the text's language, one of LANGUAGES.
         - seed: the take's seed; consecutive seeds go to the pieces of a list or a long text. None draws one.
         - speed: a factor on the estimated length. duration: the length in seconds, in place of the estimate.
+        - pace: the reference length the estimate follows. "speech" counts only the time the reference spends speaking
+          (`Voice.speech_frames`: no silent edges, pauses capped at 0.5 s); "recording" counts the whole recording.
         - prepare: verbalize the text first (turn off for text that already is).
         - trim: cut the take's silent edges.
         - sampler, overrides: sampler settings for this call, e.g. steps=12 or remasking=False.
@@ -207,13 +231,15 @@ class TTS:
         voices, languages = _broadcast(voice, len(texts), "voice"), _broadcast(language, len(texts), "language")
         config = replace(sampler or self.sampler, **overrides)
         base = random.randrange(2**31) if seed is None else seed
+        if pace not in PACES:
+            raise ValueError(f"unknown pace {pace!r}, expected one of: {', '.join(PACES)}")
 
         prompts: List[Prompt] = []
         owners: List[int] = []
         for i, (words, speaker, lang) in enumerate(zip(texts, voices, languages)):
             check_language(lang)
             words = prepare_text(words, lang) if prepare else words
-            reference_frames = speaker.codes.size(1)
+            reference_frames = speaker.pace_frames if pace == "speech" else speaker.codes.size(1)
             if duration is not None:
                 pieces = [(words, max(1, round(duration * FRAME_RATE)))]
             else:
