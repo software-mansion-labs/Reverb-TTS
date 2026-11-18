@@ -1,5 +1,6 @@
 """
-Reference audio in, generated audio out: loading and resampling a recording, and trimming a take's silent edges.
+Reference audio in, generated audio out: loading and resampling a recording, measuring how long its speech lasts, and
+trimming a take's silent edges.
 """
 
 from pathlib import Path
@@ -15,6 +16,8 @@ RESAMPLE = {"lowpass_filter_width": 64, "rolloff": 0.9475937167399596, "resampli
             "beta": 14.769656459379392}
 
 AudioInput = Union[str, Path, np.ndarray, torch.Tensor]
+
+SILENCE_DB = -50.0  # a 10 ms window quieter than this (dBFS) is silence
 
 
 def load_audio(audio: AudioInput, sample_rate: Optional[int], target_rate: int) -> torch.Tensor:
@@ -41,17 +44,15 @@ def load_audio(audio: AudioInput, sample_rate: Optional[int], target_rate: int) 
 
 def trim_silence(audio: np.ndarray, sample_rate: int, keep: float = 0.1) -> np.ndarray:
     """
-    Cuts leading and trailing silence (10 ms windows under -50 dBFS), keeping `keep` seconds of it on each side.
+    Cuts leading and trailing silence (10 ms windows under SILENCE_DB), keeping `keep` seconds of it on each side.
     """
 
     window = sample_rate // 100
-    count = len(audio) // window
-    if count == 0:
-        return audio
-    level = 20 * np.log10(np.sqrt((audio[: count * window].reshape(count, window) ** 2).mean(1)) + 1e-10)
-    loud = np.flatnonzero(level >= -50)
+    level = _levels(audio, window)
+    loud = np.flatnonzero(level >= SILENCE_DB)
     if len(loud) == 0:
         return audio
+    count = len(level)
     sounds = np.split(loud, np.flatnonzero(np.diff(loud) > 20) + 1)  # separated by over 200 ms of silence
     # A sound of at most 120 ms, alone at either edge, is a codec burst rather than speech.
     if len(sounds) > 1 and len(sounds[0]) <= 12:
@@ -60,3 +61,35 @@ def trim_silence(audio: np.ndarray, sample_rate: int, keep: float = 0.1) -> np.n
         sounds = sounds[:-1]
     margin = round(keep * 100)
     return audio[max(sounds[0][0] - margin, 0) * window: min(sounds[-1][-1] + 1 + margin, count) * window]
+
+
+def speech_length(audio: np.ndarray, sample_rate: int, max_pause: float = 0.2, lead: float = 0.1,
+                  trail: float = 0.2) -> float:
+    """
+    Seconds of a reference recording that set the speaker's pace: the recording without its silent edges (keeping
+    `lead` and `trail` seconds) and with every pause inside the speech counted as at most `max_pause` seconds.
+    """
+
+    window = sample_rate // 100
+    count = len(audio) // window
+    if count == 0:
+        return len(audio) / sample_rate
+    x = np.asarray(audio[: count * window], dtype=np.float64)
+    level = _levels(x * 0.1 / max(float(np.sqrt(np.mean(x ** 2))), 1e-8), window)
+    loud = np.flatnonzero(level >= SILENCE_DB)
+    if len(loud) == 0:
+        return len(audio) / sample_rate
+    first, last = int(loud[0]), int(loud[-1])
+    gaps = np.diff(loud) - 1  # silent windows between consecutive loud ones
+    kept = len(loud) + int(np.minimum(gaps, round(max_pause * 100)).sum())
+    edges = min(first, round(lead * 100)) + min(count - 1 - last, round(trail * 100))
+
+    return (kept + edges) / 100
+
+
+def _levels(audio: np.ndarray, window: int) -> np.ndarray:
+    """The level of every whole `window` of samples, in dBFS."""
+
+    count = len(audio) // window
+
+    return 20 * np.log10(np.sqrt((audio[: count * window].reshape(count, window) ** 2).mean(1)) + 1e-10)

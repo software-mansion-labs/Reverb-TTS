@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 import numpy as np
 import pytest
@@ -25,13 +25,57 @@ def test_a_voice_holds_codes_and_a_prepared_transcript(voice: Voice) -> None:
 
 
 def test_a_voice_survives_a_round_trip_to_disk(voice: Voice, tmp_path: Path) -> None:
+    voice = Voice(voice.codes, voice.text, voice.language, speech_frames=30)
     voice.save(tmp_path / "voice.npz")
     loaded = Voice.load(tmp_path / "voice.npz")
     assert torch.equal(loaded.codes, voice.codes) and (loaded.text, loaded.language) == (voice.text, voice.language)
+    assert loaded.speech_frames == 30
 
 
-def write_preset(path: Path, codes: List[int], language: str = "en") -> Path:
-    path.write_text(json.dumps({"name": path.stem, "language": language, "transcript": "Hello there.", "codes": codes}))
+def test_a_voice_saved_without_speech_frames_counts_every_frame(voice: Voice, tmp_path: Path) -> None:
+    np.savez(tmp_path / "old.npz", codes=voice.codes.numpy().astype(np.int16), text=voice.text, language="en")
+    loaded = Voice.load(tmp_path / "old.npz")
+    assert loaded.speech_frames is None and loaded.pace_frames == 50
+
+
+def test_a_voice_measures_its_speech_and_keeps_the_recording_whole(tts: TTS) -> None:
+    sound = 0.3 * np.sin(2 * np.pi * 220 * np.arange(RATE) / RATE).astype(np.float32)
+    silence = np.zeros(RATE, np.float32)
+    voice = tts.voice(np.concatenate([silence, sound, silence, sound, silence]), "Hello there.", "en", sample_rate=RATE)
+    assert voice.codes.size(1) == 125  # 5 s, nothing cut
+    assert voice.speech_frames == pytest.approx(25 * 2.5, abs=1)  # 2 s of sound, a 0.2 s pause, 0.1 + 0.2 s of edges
+    assert voice.pace_frames == voice.speech_frames
+
+
+def test_the_length_estimate_follows_the_speech_frames(tts: TTS, voice: Voice,
+                                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    sampled: List[Prompt] = []
+    monkeypatch.setattr(TTS, "_sample", lambda self, prompts, config: sampled.extend(prompts) or
+                        [torch.zeros(8, p.frames, dtype=torch.long) for p in prompts])
+    text = "A sentence long enough for a linear estimate, spoken in this voice."
+    tts.generate(text, voice, "en", seed=0)
+    tts.generate(text, Voice(voice.codes, voice.text, voice.language, speech_frames=25), "en", seed=0)
+    assert sampled[1].frames == pytest.approx(sampled[0].frames / 2, abs=1)
+
+
+def test_pace_recording_estimates_from_the_whole_recording(tts: TTS, voice: Voice,
+                                                           monkeypatch: pytest.MonkeyPatch) -> None:
+    sampled: List[Prompt] = []
+    monkeypatch.setattr(TTS, "_sample", lambda self, prompts, config: sampled.extend(prompts) or
+                        [torch.zeros(8, p.frames, dtype=torch.long) for p in prompts])
+    text = "A sentence long enough for a linear estimate, spoken in this voice."
+    paused = Voice(voice.codes, voice.text, voice.language, speech_frames=25)
+    tts.generate(text, voice, "en", seed=0)
+    tts.generate(text, paused, "en", seed=0, pace="recording")
+    tts.generate(text, paused, "en", seed=0, pace="speech")
+    assert sampled[1].frames == sampled[0].frames != sampled[2].frames
+    with pytest.raises(ValueError, match="pace"):
+        tts.generate(text, voice, "en", seed=0, pace="audio")
+
+
+def write_preset(path: Path, codes: List[int], language: str = "en", **extra: Any) -> Path:
+    path.write_text(json.dumps({"name": path.stem, "language": language, "transcript": "Hello there.", "codes": codes,
+                                **extra}))
     return path
 
 
@@ -39,6 +83,14 @@ def test_a_preset_file_loads_as_a_voice(tmp_path: Path) -> None:
     loaded = Voice.load(write_preset(tmp_path / "anna.json", list(range(8 * 5))))
     assert loaded.codes.shape == (8, 5) and loaded.codes[1, 0] == 5  # row-major: one codebook per row
     assert (loaded.text, loaded.language) == ("Hello there.", "en")
+    assert loaded.speech_frames is None and loaded.pace_frames == 5
+
+
+def test_a_preset_file_carries_its_speech_frames(tmp_path: Path) -> None:
+    assert Voice.load(write_preset(tmp_path / "anna.json", list(range(8 * 5)), speech_frames=4)).pace_frames == 4
+    for bad in (0, 2.5, "4"):
+        with pytest.raises(ValueError, match="speech_frames"):
+            Voice.load(write_preset(tmp_path / "bad.json", list(range(8 * 5)), speech_frames=bad))
 
 
 @pytest.mark.parametrize("codes, language", [(list(range(9)), "en"), ([1024] * 8, "en"), ([0] * 8, "xx")])
