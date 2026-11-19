@@ -21,37 +21,35 @@ second) over a few passes, conditioned on the text and on a reference recording 
 
 ## Results
 
-We compare Reverb with open-weight voice-cloning models on the
-[MiniMax Multilingual Test Set](https://huggingface.co/datasets/k2-fsa/TTS_eval_datasets), restricted to Reverb's seven
-languages: 700 sentences, 100 per language, each spoken in the voice of one of two reference speakers of that
-language. Every model generates one take per sentence with its default settings. WER (Whisper large-v3) and speaker
-similarity (SIM-o) come from OmniVoice's evaluation scripts and are averaged over the languages.
+We compare Reverb with well-known open-weight models on the
+[Open TTS Leaderboard](https://huggingface.co/spaces/hf-audio/open_tts_leaderboard)'s MiniMax test set, in seven
+languages: 100 sentences per language, one take each. WER (Qwen3-ASR) uses each model's default voice; speaker
+similarity (SIM-o, WavLM) uses voice cloning from a reference recording. Both are averaged over the languages.
 
-| Model | Parameters: model + codec decoder | WER ↓ | SIM-o ↑ |
+| Model | Parameters | WER ↓ | SIM-o ↑ |
 |:---|---:|---:|---:|
-| **Reverb** | **297M + 22M** | **1.35%** | 0.818 |
-| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 612M + 22M | 1.64% | **0.835** |
-| [Audio8-TTS-Realistic-Air](https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air) | 601M + 131M | 1.97% | 0.750 |
-| [Qwen3-TTS 0.6B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base) | 915M + 105M | 11.96%¹ | 0.781 |
-| [Qwen3-TTS 1.7B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) | 1,929M + 102M | 1.52%¹ | 0.781 |
-| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,290M + 46M | 1.55% | 0.810 |
-
-The model's count is the one Hugging Face reports for its weights; the codec decoder turns codes into audio. Encoders
-used only to process the reference recording are not counted.<br>
-¹ Qwen3-TTS does not support Polish, so its WER is averaged over the other six languages. For Qwen3-TTS 0.6B, 4 of 600 takes
-didn't stop and were cut at 480 tokens (about 38 s); without them its WER is 1.78%.
+| **Reverb** | **319M** | **0.96%** | 0.817 |
+| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.32% | **0.833** |
+| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.48% | 0.812 |
+| [MOSS-TTS](https://huggingface.co/OpenMOSS-Team/MOSS-TTS) | 8.49B | 1.72% | 0.774 |
+| [Fish S2 Pro](https://huggingface.co/fishaudio/s2-pro) | 4.95B | 1.87% | 0.761 |
+| [Audio8-TTS-Realistic](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) | 732M | 2.33% | 0.764 |
+| [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 2.62% | 0.754 |
+| [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 7.02% | 0.715 |
 
 Generation speed, in × real time (seconds of audio per second of compute; higher is better), on MiniMax English
 sentences. Timing starts from the text and an already-encoded reference voice. Every model runs its default settings.
 
 | Hardware | Reverb | OmniVoice | Audio8 | Qwen3-TTS 0.6B | Qwen3-TTS 1.7B | VoxCPM2 | Fish S2 Pro |
 |:---|---:|---:|---:|---:|---:|---:|---:|
+| NVIDIA H200, batch 32 | **232.3×** | 45.5× | 11.2× | – | – | 1.9× | 0.40×² |
 | NVIDIA RTX 5090, batch 32 | **164.9×** | 13.2× | 4.2× | 3.3× | 4.0× | 3.0×² | 0.18×² |
 | Apple M4 Pro, batch 1 | **12.3×³** | 0.84× | 0.76× | 0.51× | 0.52× | 0.69× | – |
 | iPhone 17, batch 1 | **20.6×** | 0.91× | 1.03× | 1.14× | 0.74× | – | – |
 
 RTX 5090 and M4 Pro: PyTorch in bf16 on the GPU, to the waveform with codec decoding. iPhone 17: ExecuTorch MLX
-programs in fp16 on the GPU, to the codec codes, without the decoder.<br>
+programs in fp16 on the GPU, to the codec codes, without the decoder. H200: the Open TTS Leaderboard's default voice,
+MiniMax test set, 7 languages.<br>
 ² No batched generation: sentences run one at a time.<br>
 ³ Reverb's ExecuTorch MLX program (fp16) with the Core ML codec decoder, as it ships: 21.6×.
 

@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header_dark.png">
-  <img src="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 164.9x faster than real time on an RTX 5090 at batch 32, 21.6x on an M4 Pro and 20.6x on an iPhone 17; 1.35% word error rate on MiniMax. Software Mansion AI Labs.">
+  <img src="https://raw.githubusercontent.com/software-mansion-labs/Reverb-TTS/main/docs/assets/header.png" alt="Reverb-TTS: zero-shot voice cloning with open weights in 7 languages. 297M parameters; 232.3x faster than real time on an H200 and 164.9x on an RTX 5090 at batch 32, 21.6x on an M4 Pro and 20.6x on an iPhone 17; 0.96% word error rate on MiniMax. Software Mansion AI Labs.">
 </picture>
 
 # Reverb-TTS
@@ -18,9 +18,9 @@ that runs it.
 
 - **Zero-shot cloning** from 3 to 10 seconds of speech and its transcript, with no fine-tuning.
 - **7 languages:** English, German, French, Spanish, Italian, Polish, and Portuguese. A voice can speak any of them.
-- **1.35% word error rate** on the MiniMax test set, the lowest of the six open-weight models we compared.
+- **0.96% word error rate** on the Open TTS Leaderboard's MiniMax test set, lower than every model on the leaderboard.
 - **297M parameters**, plus a 22M-parameter codec decoder.
-- **164.9× real time** on an RTX 5090 at batch 32, **over 20×** on an Apple M4 Pro and an iPhone 17 at batch 1.
+- **232.3× real time** on an NVIDIA H200 and **164.9×** on an RTX 5090 at batch 32, **over 20×** on an Apple M4 Pro and an iPhone 17 at batch 1.
 - **Weights:** fp32, fp16, int8, int8a8, and int4 safetensors, and ExecuTorch programs for MLX, Vulkan, and QNN.
 
 ## Install
@@ -67,17 +67,19 @@ WebGPU. Install it with `npm install runntime` and follow its getting-started gu
 
 ## Benchmarks
 
-On the [MiniMax Multilingual Test Set](https://huggingface.co/datasets/k2-fsa/TTS_eval_datasets), across Reverb's
-seven languages:
+On the [Open TTS Leaderboard](https://huggingface.co/spaces/hf-audio/open_tts_leaderboard)'s MiniMax test set, across
+seven languages. WER uses the default voice, SIM-o voice cloning, and speed the default voice on an NVIDIA H200 at batch 32.
 
-| Model | Parameters: model + codec decoder | WER ↓ | SIM-o ↑ | RTX 5090, × real time ↑ |
+| Model | Parameters | WER ↓ | SIM-o ↑ | H200, × real time ↑ |
 |:---|---:|---:|---:|---:|
-| **Reverb** | **297M + 22M** | **1.35%** | 0.818 | **164.9×** |
-| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 612M + 22M | 1.64% | **0.835** | 13.2× |
-| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,290M + 46M | 1.55% | 0.810 | 3.0×¹ |
-| [Qwen3-TTS 1.7B Base](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) | 1,929M + 102M | 1.52%² | 0.781 | 4.0× |
+| **Reverb** | **319M** | **0.96%** | 0.817 | **232.3×** |
+| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.32% | **0.833** | 45.5× |
+| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.48% | 0.812 | 1.9× |
+| [MOSS-TTS](https://huggingface.co/OpenMOSS-Team/MOSS-TTS) | 8.49B | 1.72% | 0.774 | 21.9× |
+| [Fish S2 Pro](https://huggingface.co/fishaudio/s2-pro) | 4.95B | 1.87% | 0.761 | 0.40× |
+| [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 2.62% | 0.754 | 65.5× |
+| [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 7.02% | 0.715 | 2.1× |
 
-¹ No batched generation: sentences run one at a time. ² Polish excluded: Qwen3-TTS doesn't support it.<br>
 The full tables, the Apple M4 Pro and iPhone 17 speeds, and the method are in the [overview](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/docs/overview.md#results).
 
 ## Use it responsibly
