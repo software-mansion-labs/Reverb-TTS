@@ -92,11 +92,12 @@ audios = tts.generate(["First line.", "Second line."], voice, language="en")
 audios = tts.generate(["Hello.", "Bonjour."], [anna, pierre], language=["en", "fr"])
 ```
 
-## Text preparation
+## Text preprocessing
 
-Text and transcripts are prepared with [Verbalis](https://github.com/software-mansion-labs/Verbalis) first: numbers,
-dates, money, units, symbols and abbreviations become words ("$49" becomes "forty-nine dollars"). Pass `prepare=False`
-for text that is already written out, in `generate` or in `voice`.
+Reverb was trained on text in spoken form, so every text and transcript must be normalized before it reaches the model:
+numbers, dates, money, units, symbols, and abbreviations written out as words ("$49" becomes "forty-nine dollars"). The
+package does this with [Verbalis](https://github.com/software-mansion-labs/Verbalis) in `generate` and in `voice`. Pass
+`prepare=False` only for text that is already normalized; if you normalize it yourself, we strongly recommend Verbalis.
 
 ## Weights and hardware
 

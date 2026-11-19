@@ -29,10 +29,13 @@ precision.
 | Vulkan int4 | Android GPUs | 233 MB |
 | QNN int4 | Qualcomm NPUs, one program per chip: Snapdragon 8 Gen 1 (SM8450, v69), 8 Gen 2 (SM8550, v73), 8 Gen 3 (SM8650, v75), 8 Elite (SM8750, v79), 8 Elite Gen 5 (SM8850, v81) | 232–237 MB each |
 
+The programs take text exactly as given, so normalize it first, as the package does: we strongly recommend
+[Verbalis](https://github.com/software-mansion-labs/Verbalis), which has a C++ API for on-device apps.
+
 ### In the browser
 
-[ruNNtime](https://docs.swmansion.com/runntime/zoo/getting-started/) runs Reverb on the GPU in the browser through
-WebGPU, from its own copy of the weights.
+[ruNNtime](https://docs.swmansion.com/runntime/zoo/text-to-speech/) runs Reverb on the GPU in the browser through
+WebGPU, with the weights from the Hugging Face Hub.
 
 ## Repository layout
 

@@ -51,13 +51,24 @@ voice = tts.preset_voice("pl_male_standard")  # tts.preset_voices() lists them a
 audio = tts.generate("Dzień dobry! Mówię po polsku.", voice, language="pl")
 ```
 
-`TTS.from_pretrained` picks CUDA, Apple's MPS, or the CPU, in that order. Numbers, dates, money, and abbreviations are
-read out as words, and long texts are split at sentence ends, so you can pass text as you'd write it.
+`TTS.from_pretrained` picks CUDA, Apple's MPS, or the CPU, in that order. Long texts are split at sentence ends.
+
+### Text preprocessing
+
+Reverb reads text in spoken form: it was trained on text with numbers, dates, money, units, symbols, and abbreviations
+written out as words. Normalizing the text is therefore a required step before generating, not an optional extra.
+
+- **With the Python package**, it's done for you: `generate` and `voice` run
+  [Verbalis](https://github.com/software-mansion-labs/Verbalis) on the text and the transcript by default, so you can
+  pass text as you'd write it ("$49" is read as "forty-nine dollars").
+- **Anywhere else** (the ExecuTorch programs, ruNNtime, or `prepare=False`), the text reaches the model exactly as you
+  give it. Normalize it yourself first. We strongly recommend Verbalis, the normalizer the package uses, with C++,
+  TypeScript, and Python APIs for all seven of Reverb's languages.
 
 ### In the browser
 
-[ruNNtime](https://docs.swmansion.com/runntime/zoo/getting-started/) runs Reverb on the GPU in the browser through
-WebGPU. Install it with `npm install runntime` and follow its getting-started guide.
+[ruNNtime](https://docs.swmansion.com/runntime/zoo/text-to-speech/) runs Reverb on the GPU in the browser through
+WebGPU. Install it with `npm install runntime` and follow its text-to-speech guide.
 
 ## Documentation
 
