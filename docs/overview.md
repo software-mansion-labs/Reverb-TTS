@@ -37,8 +37,9 @@ speaker similarity (SIM-o, WavLM) are averaged over the languages.
 | [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 2.76% | 0.715 |
 | [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 6.59% | 0.754 |
 
-Generation speed, in × real time (seconds of audio per second of compute; higher is better), on MiniMax English
-sentences. Timing starts from the text and an already-encoded reference voice. Every model runs its default settings.
+Generation speed, in × real time (seconds of audio per second of compute; higher is better), with each model's default
+settings. The H200 row is the Open TTS Leaderboard's run over all seven MiniMax languages; the other rows are ours, on
+MiniMax English sentences, timed from the text and an already-encoded reference voice.
 
 | Hardware | Reverb | OmniVoice | Audio8 | Qwen3-TTS 0.6B | Qwen3-TTS 1.7B | VoxCPM2 | Fish S2 Pro |
 |:---|---:|---:|---:|---:|---:|---:|---:|
