@@ -23,19 +23,19 @@ second) over a few passes, conditioned on the text and on a reference recording 
 
 We compare Reverb with well-known open-weight models on the
 [Open TTS Leaderboard](https://huggingface.co/spaces/hf-audio/open_tts_leaderboard)'s MiniMax test set, in seven
-languages: 100 sentences per language, one take each. WER (Qwen3-ASR) uses each model's default voice; speaker
-similarity (SIM-o, WavLM) uses voice cloning from a reference recording. Both are averaged over the languages.
+languages: 100 sentences per language, one take each, every model cloning a reference recording. WER (Qwen3-ASR) and
+speaker similarity (SIM-o, WavLM) are averaged over the languages.
 
 | Model | Parameters | WER ↓ | SIM-o ↑ |
 |:---|---:|---:|---:|
-| **Reverb** | **319M** | **0.96%** | 0.817 |
-| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.32% | **0.833** |
-| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.48% | 0.812 |
-| [MOSS-TTS](https://huggingface.co/OpenMOSS-Team/MOSS-TTS) | 8.49B | 1.72% | 0.774 |
-| [Fish S2 Pro](https://huggingface.co/fishaudio/s2-pro) | 4.95B | 1.87% | 0.761 |
-| [Audio8-TTS-Realistic](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) | 732M | 2.33% | 0.764 |
-| [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 2.62% | 0.754 |
-| [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 7.02% | 0.715 |
+| **Reverb** | **319M** | **1.03%** | 0.817 |
+| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.13% | **0.833** |
+| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.20% | 0.812 |
+| [Fish S2 Pro](https://huggingface.co/fishaudio/s2-pro) | 4.95B | 1.35% | 0.761 |
+| [Audio8-TTS-Realistic](https://huggingface.co/Edge0/Audio8-TTS-Realistic-0.6b) | 732M | 1.46% | 0.764 |
+| [MOSS-TTS](https://huggingface.co/OpenMOSS-Team/MOSS-TTS) | 8.49B | 1.84% | 0.774 |
+| [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 2.76% | 0.715 |
+| [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 6.59% | 0.754 |
 
 Generation speed, in × real time (seconds of audio per second of compute; higher is better), on MiniMax English
 sentences. Timing starts from the text and an already-encoded reference voice. Every model runs its default settings.

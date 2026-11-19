@@ -68,17 +68,17 @@ WebGPU. Install it with `npm install runntime` and follow its getting-started gu
 ## Benchmarks
 
 On the [Open TTS Leaderboard](https://huggingface.co/spaces/hf-audio/open_tts_leaderboard)'s MiniMax test set, across
-seven languages. WER uses the default voice, SIM-o voice cloning, and speed the default voice on an NVIDIA H200 at batch 32.
+seven languages, all with voice cloning: WER, speaker similarity (SIM-o), and speed on an NVIDIA H200 at batch 32.
 
 | Model | Parameters | WER ↓ | SIM-o ↑ | H200, × real time ↑ |
 |:---|---:|---:|---:|---:|
-| **Reverb** | **319M** | **0.96%** | 0.817 | **232.3×** |
-| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.32% | **0.833** | 45.5× |
-| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.48% | 0.812 | 1.9× |
-| [MOSS-TTS](https://huggingface.co/OpenMOSS-Team/MOSS-TTS) | 8.49B | 1.72% | 0.774 | 21.9× |
-| [Fish S2 Pro](https://huggingface.co/fishaudio/s2-pro) | 4.95B | 1.87% | 0.761 | 0.40× |
-| [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 2.62% | 0.754 | 65.5× |
-| [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 7.02% | 0.715 | 2.1× |
+| **Reverb** | **319M** | **1.03%** | 0.817 | **125.2×** |
+| [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) | 634M | 1.13% | **0.833** | 27.1× |
+| [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) | 2,336M | 1.20% | 0.812 | 2.0× |
+| [Fish S2 Pro](https://huggingface.co/fishaudio/s2-pro) | 4.95B | 1.35% | 0.761 | 0.40× |
+| [MOSS-TTS](https://huggingface.co/OpenMOSS-Team/MOSS-TTS) | 8.49B | 1.84% | 0.774 | 19.4× |
+| [Chatterbox](https://huggingface.co/ResembleAI/chatterbox) | 0.80B | 2.76% | 0.715 | 2.0× |
+| [Higgs TTS 3](https://huggingface.co/bosonai/higgs-tts-3-4b) | 4.65B | 6.59% | 0.754 | 72.9× |
 
 The full tables, the Apple M4 Pro and iPhone 17 speeds, and the method are in the [overview](https://github.com/software-mansion-labs/Reverb-TTS/blob/main/docs/overview.md#results).
 
