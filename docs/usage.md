@@ -103,12 +103,12 @@ for text that is already written out, in `generate` or in `voice`.
 ```python
 import torch
 
-tts = TTS.from_pretrained(variant="int4")                  # fp32, int8 (default), int8a8 or int4
+tts = TTS.from_pretrained(variant="int4")                  # fp32, fp16, int8 (default) or int4
 tts = TTS.from_pretrained(device="cpu", dtype=torch.float32)
 tts = TTS.from_pretrained("path/to/weights")                # a local folder
 ```
 
-- **variant:** quantized weights download smaller and are expanded to `dtype` on load, so every variant runs at the same
+- **variant:** every variant is converted to `dtype` on load, so the smaller ones download faster but run at the same
   speed. See [Reference](reference.md#model-variants).
 - **device:** the first available of CUDA, MPS and CPU by default.
 - **dtype:** bfloat16 on CUDA (float16 without bf16 support), float16 on MPS, float32 on CPU by default.
@@ -133,7 +133,7 @@ tts = TTS.from_pretrained(sampler=SamplerConfig(steps=12))
 | `codebook_penalty` | 5.0 | makes codebook 0 tend to be decided before codebook 1 |
 | `position_temperature` | 5.0 | scales confidence against random noise; higher is more random |
 | `polish_bias` | 1.0 | attention bias towards the reference in the polish passes |
-| `polish_guidance` | 1.0 | weight of the second polish pass's change over the first (codebooks 4-7) |
+| `polish_guidance` | 0.5 | weight of the second polish pass's change over the first (codebooks 4-7) |
 
-The defaults are the tuned setup. On the MiniMax test set they scored 1.35% WER and 0.816 SIM-o, against 1.50% and
-0.817 with `remasking=False`.
+The defaults are the tuned setup. On the MiniMax test set they scored 1.35% WER and 0.818 SIM-o, against 1.50% and
+0.817 with `remasking=False`. A `polish_guidance` of 1.0 scored 1.34% and 0.816.

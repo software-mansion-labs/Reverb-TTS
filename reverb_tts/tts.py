@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 REPOSITORY, REVISION = "software-mansion/Reverb-TTS", "v1.0.0"  # the released weights
 PRESETS = REPOSITORY  # preset voices, as voices/<name>.json
 CODEC, CODEC_REVISION = "eustlb/higgs-audio-v2-tokenizer", "0e3a9177c2991016b8e5e17d23aa474ee665bef2"
-VARIANTS = ("fp32", "int8", "int8a8", "int4")
+VARIANTS = ("fp32", "fp16", "int8", "int4")
 FRAME_RATE = 25              # codec frames per second
 LONGEST, PIECE = 30.0, 15.0  # seconds: a text estimated longer than LONGEST is spoken in pieces of about PIECE
 END_CUT = 0.2                # seconds cut from every take's end, where the codec can leave a short burst of noise
@@ -134,8 +134,8 @@ class TTS:
         model/safetensors/<variant>/) or one checkpoint (config.json and model.safetensors, with the tokenizer beside or
         above it).
 
-        - variant: fp32, int8 (the default), int8a8 or int4. Quantized weights are expanded to `dtype` on load, so they
-          download smaller but run at the same speed.
+        - variant: fp32, fp16, int8 (the default) or int4. Every variant is converted to `dtype` on load, so the
+          smaller ones download faster but run at the same speed.
         - device: cuda, mps or cpu; by default the first one available.
         - dtype: by default bfloat16 on CUDA (float16 without bf16 support), float16 on MPS and float32 on the CPU.
         """

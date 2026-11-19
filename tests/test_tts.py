@@ -131,7 +131,7 @@ def test_sampler_overrides_reach_the_sampler(tts: TTS, voice: Voice, monkeypatch
 
     monkeypatch.setattr(tts_module, "sample", spy)
     tts.generate("Hello there.", voice, "en", seed=0, steps=3, remasking=False)
-    assert seen[-1].steps == 3 and not seen[-1].remasking and seen[-1].polish_guidance == 1.0
+    assert seen[-1].steps == 3 and not seen[-1].remasking and seen[-1].polish_guidance == SamplerConfig().polish_guidance
     with pytest.raises(TypeError):
         tts.generate("Hello there.", voice, "en", seed=0, not_a_setting=1)
 
@@ -163,3 +163,11 @@ def test_resolve_finds_a_release_layout(tmp_path: Path) -> None:
         _resolve(tmp_path, "int4", None, None)
     with pytest.raises(ValueError, match="variant"):
         _resolve(tmp_path, "int2", None, None)
+
+
+def test_resolve_finds_the_safetensors_layout(tmp_path: Path) -> None:
+    weights = tmp_path / "model" / "safetensors" / "int4"
+    weights.mkdir(parents=True)
+    (weights / "config.json").write_text(json.dumps({}))
+    (tmp_path / "model" / "tokenizer.json").write_text("{}")
+    assert _resolve(tmp_path, "int4", None, None) == (weights, tmp_path / "model")

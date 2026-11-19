@@ -26,7 +26,7 @@ class SamplerConfig:
     codebook_penalty: float = 5.0       # per codebook index, so codebook 0 tends to be committed before codebook 1
     position_temperature: float = 5.0   # scales confidence and penalty against the Gumbel noise
     polish_bias: float = 1.0            # attention bias towards the reference frames, in the polish passes only
-    polish_guidance: float = 1.0        # codebooks 4-7: weight of (second polish pass - first polish pass)
+    polish_guidance: float = 0.5        # codebooks 4-7: weight of (second polish pass - first polish pass)
 
     def __post_init__(self) -> None:
         if self.steps < 1:
