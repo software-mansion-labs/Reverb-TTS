@@ -5,7 +5,7 @@ config.json and model.safetensors - full precision, or a quantized variant whose
 
 import json
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 import torch
 from safetensors.torch import load_file
@@ -63,12 +63,6 @@ class Network(torch.nn.Module):
         heads = weights["audio_heads.weight"].view(CODEBOOKS, CODES, -1)
         weights["audio_heads.weight"] = (heads - heads.mean(1, keepdim=True)).flatten(0, 1)
         network.load_state_dict(weights)
-
-        # An int8a8 checkpoint was made to run with each token's projection inputs rounded to int8.
-        if quantization and quantization.get("activations"):
-            for module in network.llm.layers.modules():
-                if isinstance(module, torch.nn.Linear):
-                    module.register_forward_pre_hook(round_per_token)
         return network.eval()
 
 
@@ -80,6 +74,8 @@ def dequantize(weights: Dict[str, torch.Tensor], quantization: Dict) -> Dict[str
 
     if quantization.get("rotation"):
         raise NotImplementedError("checkpoints with rotated projections are not supported")
+    if quantization.get("activations"):
+        raise NotImplementedError("checkpoints with quantized activations, such as int8a8, are not supported")
     bits, group = quantization["bits"], quantization.get("group_size")
     for key in [key for key in weights if key.endswith(SCALE)]:
         name, scale = key[: -len(SCALE)], weights.pop(key).float()
@@ -95,12 +91,3 @@ def dequantize(weights: Dict[str, torch.Tensor], quantization: Dict) -> Dict[str
             weights[name] = codes * scale
     return weights
 
-
-def round_per_token(module: torch.nn.Module, args: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
-    """
-    Rounds each token's input to symmetric int8, with a scale of its own.
-    """
-
-    x = args[0]
-    scale = x.abs().amax(-1, keepdim=True).clamp(min=1e-12) / 127
-    return ((x / scale).round().clamp(-127, 127) * scale,) + args[1:]

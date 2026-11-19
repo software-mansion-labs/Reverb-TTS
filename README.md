@@ -21,7 +21,7 @@ that runs it.
 - **0.96% word error rate** on the Open TTS Leaderboard's MiniMax test set, lower than every model on the leaderboard.
 - **297M parameters**, plus a 22M-parameter codec decoder.
 - **232.3× real time** on an NVIDIA H200 and **164.9×** on an RTX 5090 at batch 32, **over 20×** on an Apple M4 Pro and an iPhone 17 at batch 1.
-- **Weights:** fp32, fp16, int8, int8a8, and int4 safetensors, and ExecuTorch programs for MLX, Vulkan, and QNN.
+- **Weights:** fp32, fp16, int8, and int4 safetensors, and ExecuTorch programs for MLX, Vulkan, and QNN.
 
 ## Install
 

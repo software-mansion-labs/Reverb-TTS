@@ -103,7 +103,7 @@ for text that is already written out, in `generate` or in `voice`.
 ```python
 import torch
 
-tts = TTS.from_pretrained(variant="int4")                  # fp32, fp16, int8 (default), int8a8 or int4
+tts = TTS.from_pretrained(variant="int4")                  # fp32, fp16, int8 (default) or int4
 tts = TTS.from_pretrained(device="cpu", dtype=torch.float32)
 tts = TTS.from_pretrained("path/to/weights")                # a local folder
 ```

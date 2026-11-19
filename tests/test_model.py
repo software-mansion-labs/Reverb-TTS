@@ -38,11 +38,10 @@ def test_quantized_checkpoints_are_expanded_on_load(network: Network, tmp_path: 
     assert (table - loaded.state_dict()["llm.embed_tokens.table.weight"]).abs().max() <= table.abs().amax() / 254 + 1e-3
 
 
-def test_int8a8_checkpoint_rounds_projection_inputs(network: Network, tmp_path: Path) -> None:
+def test_checkpoints_with_quantized_activations_are_rejected(network: Network, tmp_path: Path) -> None:
     quantization = {"bits": 8, "group_size": None, "activations": "per_token", "rotation": None}
-    loaded = Network.load(write_checkpoint(tmp_path, network, quantization))
-    hooked = [m for m in loaded.llm.layers.modules() if isinstance(m, torch.nn.Linear) and m._forward_pre_hooks]
-    assert len(hooked) == 7 * 2  # q, k, v, o, gate, up, down in each of 2 layers
+    with pytest.raises(NotImplementedError, match="int8a8"):
+        Network.load(write_checkpoint(tmp_path, network, quantization))
 
 
 def test_rotated_checkpoints_are_rejected(network: Network, tmp_path: Path) -> None:
