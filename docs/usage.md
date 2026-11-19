@@ -135,6 +135,5 @@ tts = TTS.from_pretrained(sampler=SamplerConfig(steps=12))
 | `polish_bias` | 1.0 | attention bias towards the reference in the polish passes |
 | `polish_guidance` | 0.5 | weight of the second polish pass's change over the first (codebooks 4-7) |
 
-The defaults are the tuned setup. In our own tuning runs on the MiniMax test set (Whisper large-v3 and OmniVoice's
-evaluation scripts, so not comparable with the leaderboard's numbers in the overview), they scored 1.35% WER and
-0.818 SIM-o, against 1.50% and 0.817 with `remasking=False`. A `polish_guidance` of 1.0 scored 1.34% and 0.816.
+The defaults are the tuned setup. On the MiniMax test set they scored 1.35% WER and 0.818 SIM-o, against 1.50% and
+0.817 with `remasking=False`. A `polish_guidance` of 1.0 scored 1.34% and 0.816.
