@@ -3,6 +3,7 @@ Text preparation and target length. Verbalis reads numbers, dates, money, units,
 words, and writes quotes, apostrophes, dashes and ellipses in the forms the training transcripts use.
 """
 
+import atexit
 import functools
 import re
 import unicodedata
@@ -33,6 +34,10 @@ def check_language(language: str) -> str:
 @functools.lru_cache(maxsize=None)
 def _verbalizer(language: str) -> Verbalizer:
     return Verbalizer(language)
+
+
+# Frees the cached Verbalizers before the interpreter tears Verbalis down, so nanobind finds nothing left to report.
+atexit.register(_verbalizer.cache_clear)
 
 
 def prepare_text(text: str, language: str) -> str:

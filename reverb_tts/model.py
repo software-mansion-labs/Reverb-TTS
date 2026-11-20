@@ -49,7 +49,7 @@ class Network(torch.nn.Module):
 
     @classmethod
     def load(cls, folder: Path) -> "Network":
-        config = json.loads((folder / "config.json").read_text())
+        config = json.loads((folder / "config.json").read_text(encoding="utf-8"))
         weights = load_file(folder / "model.safetensors")
         quantization = config.get("quantization")
         if quantization:
