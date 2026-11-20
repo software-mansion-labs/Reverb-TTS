@@ -16,6 +16,7 @@ from typing import Any, List, Literal, Optional, Sequence, Tuple, TypeVar, Union
 import numpy as np
 import torch
 from huggingface_hub import hf_hub_download, list_repo_files, snapshot_download
+from huggingface_hub.errors import EntryNotFoundError
 from transformers import HiggsAudioV2TokenizerModel, Qwen2Tokenizer
 
 from reverb_tts.audio import AudioInput, load_audio, raise_quiet, speech_length, trim_silence
@@ -84,7 +85,7 @@ class Voice:
             speech = int(data["speech_frames"]) if "speech_frames" in data.files else None
             return cls(torch.from_numpy(data["codes"].astype(np.int64)), str(data["text"]), str(data["language"]),
                        speech)
-        data = json.loads(Path(path).read_text())
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
         codes = torch.tensor(data["codes"], dtype=torch.long)
         if codes.numel() == 0 or codes.numel() % CODEBOOKS or not 0 <= int(codes.min()) <= int(codes.max()) < MASK:
             raise ValueError(f"{path}: expected codes as {CODEBOOKS} x frames integers below {MASK}")
@@ -156,7 +157,7 @@ class TTS:
 
         if self.presets is not None:
             return sorted(p.stem for p in self.presets.glob("*.json"))
-        files = list_repo_files(PRESETS, token=self.token)
+        files = list_repo_files(PRESETS, revision=REVISION, token=self.token)
         return sorted(Path(f).stem for f in files if f.startswith("voices/") and f.endswith(".json"))
 
     def preset_voice(self, name: str) -> Voice:
@@ -164,12 +165,17 @@ class TTS:
         A preset voice, by name (see `preset_voices`): ready to use, with no recording to encode.
         """
 
-        names = self.preset_voices()
-        if name not in names:
-            raise ValueError(f"unknown preset voice {name!r}, expected one of: {', '.join(names)}")
-        if self.presets is not None:
-            return Voice.load(self.presets / f"{name}.json")
-        return Voice.load(hf_hub_download(PRESETS, f"voices/{name}.json", token=self.token))
+        # Straight to the file, so a cached voice loads offline; the list is only for the error.
+        try:
+            if self.presets is not None:
+                path = self.presets / f"{name}.json"
+                if not path.is_file():
+                    raise FileNotFoundError(path)
+                return Voice.load(path)
+            return Voice.load(hf_hub_download(PRESETS, f"voices/{name}.json", revision=REVISION, token=self.token))
+        except (FileNotFoundError, EntryNotFoundError):  # offline and not cached raises huggingface_hub's own error
+            names = ", ".join(self.preset_voices())
+            raise ValueError(f"unknown preset voice {name!r}, expected one of: {names}") from None
 
     @torch.inference_mode()
     def voice(self, audio: AudioInput, text: str, language: str, *, sample_rate: Optional[int] = None,
