@@ -189,5 +189,5 @@ def test_only_the_released_repository_defaults_to_its_tag(monkeypatch: pytest.Mo
 
     monkeypatch.setattr(tts_module, "_resolve", resolve)
     with pytest.raises(StopIteration):
-        TTS.from_pretrained(name, revision=revision)
+        TTS.from_pretrained(name, **({} if revision is None else {"revision": revision}))
     assert asked == [expected]
