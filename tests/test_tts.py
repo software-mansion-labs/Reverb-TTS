@@ -171,3 +171,24 @@ def test_resolve_finds_the_safetensors_layout(tmp_path: Path) -> None:
     (weights / "config.json").write_text(json.dumps({}))
     (tmp_path / "model" / "tokenizer.json").write_text("{}")
     assert _resolve(tmp_path, "int4", None, None) == (weights, tmp_path / "model")
+
+
+@pytest.mark.parametrize("name, revision, expected", [
+    ("software-mansion/Reverb-TTS", None, "v1.0.0"),
+    ("software-mansion/reverb-tts", None, "v1.0.0"),
+    ("someone/reverb-tts-finetune", None, None),
+    ("someone/reverb-tts-finetune", "v2", "v2"),
+    ("software-mansion/Reverb-TTS", "main", "main"),
+])
+def test_only_the_released_repository_defaults_to_its_tag(monkeypatch: pytest.MonkeyPatch, name: str,
+                                                          revision: Any, expected: Any) -> None:
+    asked: List[Any] = []
+
+    def resolve(name_or_path: Any, variant: str, revision: Any, token: Any) -> Any:
+        asked.append(revision)
+        raise StopIteration
+
+    monkeypatch.setattr(tts_module, "_resolve", resolve)
+    with pytest.raises(StopIteration):
+        TTS.from_pretrained(name, **({} if revision is None else {"revision": revision}))
+    assert asked == [expected]

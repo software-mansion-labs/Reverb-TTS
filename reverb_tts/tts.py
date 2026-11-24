@@ -122,7 +122,7 @@ class TTS:
         name_or_path: Union[str, Path] = REPOSITORY,
         *,
         variant: str = "int8",
-        revision: Optional[str] = REVISION,
+        revision: Optional[str] = None,
         token: Optional[str] = None,
         device: Optional[Union[str, torch.device]] = None,
         dtype: Optional[torch.dtype] = None,
@@ -135,12 +135,15 @@ class TTS:
         model/safetensors/<variant>/) or one checkpoint (config.json and model.safetensors, with the tokenizer beside or
         above it).
 
+        - revision: a branch, tag or commit of the repository; by default the released weights' tag for
+          software-mansion/Reverb-TTS, and the latest commit for any other repository.
         - variant: fp32, fp16, int8 (the default) or int4. Every variant is converted to `dtype` on load, so the
           smaller ones download faster but run at the same speed.
         - device: cuda, mps or cpu; by default the first one available.
         - dtype: by default bfloat16 on CUDA (float16 without bf16 support), float16 on MPS and float32 on the CPU.
         """
 
+        revision = revision or (REVISION if str(name_or_path).lower() == REPOSITORY.lower() else None)
         weights, tokenizer = _resolve(name_or_path, variant, revision, token)
         device = _pick_device(device)
         network = Network.load(weights).to(device, dtype or _default_dtype(device))
