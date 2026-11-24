@@ -175,6 +175,7 @@ def test_resolve_finds_the_safetensors_layout(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("name, revision, expected", [
     ("software-mansion/Reverb-TTS", None, "v1.0.0"),
+    ("software-mansion/reverb-tts", None, "v1.0.0"),
     ("someone/reverb-tts-finetune", None, None),
     ("someone/reverb-tts-finetune", "v2", "v2"),
     ("software-mansion/Reverb-TTS", "main", "main"),

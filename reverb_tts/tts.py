@@ -142,7 +142,7 @@ class TTS:
         - dtype: by default bfloat16 on CUDA (float16 without bf16 support), float16 on MPS and float32 on the CPU.
         """
 
-        revision = revision or (REVISION if str(name_or_path) == REPOSITORY else None)
+        revision = revision or (REVISION if str(name_or_path).lower() == REPOSITORY.lower() else None)
         weights, tokenizer = _resolve(name_or_path, variant, revision, token)
         device = _pick_device(device)
         network = Network.load(weights).to(device, dtype or _default_dtype(device))
